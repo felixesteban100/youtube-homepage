@@ -41,6 +41,7 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
         return window.innerWidth < 1024
     }
 
+    // add animation to the sidebar slideIn-left slideOut-right
     function toogle(){
         if(isScreenSmall()){
             setIsSmallOpen(s => !s)

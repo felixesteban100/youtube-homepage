@@ -1,26 +1,4 @@
-import {
-    ChevronDown,
-    ChevronUp,
-    Clapperboard,
-    Clock,
-    Home,
-    Library,
-    PlaySquare,
-    Repeat,
-    History,
-    ListVideo,
-    Flame,
-    ShoppingBag,
-    Music2,
-    Film,
-    Radio,
-    Gamepad2,
-    Newspaper,
-    Trophy,
-    Lightbulb,
-    Shirt,
-    Podcast,
-} from "lucide-react"
+import { ChevronDown, ChevronUp, Clapperboard, Clock, Home, Library, PlaySquare, Repeat, History, ListVideo, Flame, ShoppingBag, Music2, Film, Radio, Gamepad2, Newspaper, Trophy, Lightbulb, Shirt, Podcast, ThumbsUp } from "lucide-react"
 import { ElementType } from 'react'
 import Button, { buttonStyles } from '../components/Button'
 import { twMerge } from 'tailwind-merge'
@@ -28,12 +6,59 @@ import React, { ReactNode, useState } from 'react'
 import { playlists, subscriptions } from "../data/sidebar"
 import { useSidebarContext } from "../contexts/SidebarContext"
 import { PageHeaderFirstSection } from "./PageHeader"
+import { ChannelInfoResponse, YouTubePlaylistListResponse, YouTubeSubscription, YouTubeSubscriptionResponse } from "@/utils/types"
+import { useQuery } from 'react-query'
+import { API_URL_CHANNELS, REACT_QUERY_DEFAULT_PROPERTIES, URL_CLERK_API, apiKey, clerkSecretKey } from '../data/constants'
+import axios from 'axios'
+import { useAuth } from "@clerk/clerk-react";
 
-// type SideBarProps = {}
-/* { }: SideBarProps */
+type SideBarProps = {}
 
-function SideBar() {
+function SideBar({ }: SideBarProps) {
     const { isLargeOpen, isSmallOpen, close } = useSidebarContext()
+    const { isLoaded, isSignedIn, userId } = useAuth()
+
+    const { isLoading: isLoadingSubscriptions, isError: isErrorSubscriptions, data: allSubscriptions } = useQuery<YouTubeSubscriptionResponse>({
+        ...REACT_QUERY_DEFAULT_PROPERTIES,
+        enabled: (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
+        queryKey: ["YouTubeApiSubscription"],
+        queryFn: async () => {
+            if (!apiKey) {
+                throw "Missing Publishable Key";
+            }
+            // const responseApiBecauseClerkIsBadService = await axios.get<YouTubeSubscription>(`${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${userId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=subscriptions`)
+            const responseApiBecauseClerkIsBadService = await axios.get<YouTubeSubscriptionResponse>(`${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${userId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=subscriptions`).then(async (dataSubscription) => {
+                const subscriptionsWithChannelInfoPromise: Promise<YouTubeSubscription>[] = await dataSubscription.data.items.map(async (subscription) => {
+                    const configChannel = {
+                        method: 'get',
+                        maxBodyLength: Infinity,
+                        url: `${API_URL_CHANNELS}?part=snippet%2CcontentDetails%2Cstatistics&id=${subscription.snippet.resourceId.channelId}&key=${apiKey}`,
+                    };
+                    const responseChannel = await axios.request<ChannelInfoResponse>(configChannel).then(data => data.data);
+                    return { ...subscription, channelInfo: responseChannel }
+                })
+                return {
+                    ...dataSubscription.data,
+                    items: await Promise.all(subscriptionsWithChannelInfoPromise).then((value) => value)
+                }
+            });
+
+            return responseApiBecauseClerkIsBadService
+        }
+    })
+
+    const { isLoading: isLoadingPlaylists, isError: isErrorPlaylists, data: allPlaylists } = useQuery<YouTubePlaylistListResponse>({
+        ...REACT_QUERY_DEFAULT_PROPERTIES,
+        enabled: (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
+        queryKey: ["YouTubeApiPlaylists"],
+        queryFn: async () => {
+            if (!apiKey) {
+                throw "Missing Publishable Key";
+            }
+            const responseApiBecauseClerkIsBadService = await axios.get<YouTubePlaylistListResponse>(`${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${userId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=playlists`);
+            return responseApiBecauseClerkIsBadService.data
+        }
+    })
 
     return (
         <>
@@ -44,12 +69,14 @@ function SideBar() {
                 <SmallSidebarItem IconOrImgUrl={Library} title="Library" url="/library" />
             </aside>
             {isSmallOpen && (
-                <div 
+                <div
                     onClick={close}
                     className="lg:hidden fixed inset-0 z-[999] bg-secondary-dark opacity-50"
                 />
             )}
-            <aside className={`w-56 lg:sticky absolute top-0 overflow-y-auto scrollbar-hidden pb-4 flex-col gap-2 px-2 lg:flex ${isLargeOpen ? "lg:flex" : "lg:hidden"} ${isSmallOpen ? "flex z-[999] bg-background max-h-screen" : "hidden"}`}>
+            <aside
+                className={`w-56 lg:sticky absolute top-0 overflow-y-auto scrollbar-hidden pb-4 flex-col gap-2 px-2 ${isLargeOpen ? "lg:flex" : "lg:hidden"} ${isSmallOpen ? "flex z-[999] bg-background max-h-screen" : "hidden"}`}
+            >
                 <div className="lg:hidden pt-2 pb-4 px-2 sticky top-0 bg-background">
                     <PageHeaderFirstSection
                         hidden={false}
@@ -57,10 +84,11 @@ function SideBar() {
                 </div>
                 <LargeSidebarSection>
                     <LargeSidebarItem isActive IconOrImgUrl={Home} title="Home" url="/home" />
+                    <LargeSidebarItem IconOrImgUrl={Repeat} title="Shorts" url="/shorts" />
                     <LargeSidebarItem IconOrImgUrl={Clapperboard} title="Subscriptions" url="/subscriptions" />
                 </LargeSidebarSection>
                 <hr />
-                <LargeSidebarSection visibleItemCount={5}>
+                <LargeSidebarSection visibleItemCount={7}>
                     <LargeSidebarItem
                         IconOrImgUrl={Library}
                         title="Library"
@@ -81,28 +109,82 @@ function SideBar() {
                         title="Watch Later"
                         url="/playlist?list=WL"
                     />
-                    {playlists.map(playlist => (
-                        <LargeSidebarItem
-                            key={playlist.id}
-                            IconOrImgUrl={ListVideo}
-                            title={playlist.name}
-                            url={`/playlist?list=${playlist.id}`}
-                        />
-                    ))}
+                    <LargeSidebarItem
+                        IconOrImgUrl={ThumbsUp}
+                        title="Liked videos"
+                        url="/playlist?list=WL"
+                    />
+                    {
+                        (isSignedIn === undefined || isSignedIn === false) ?
+                            null
+                            :
+                            isLoadingPlaylists ?
+                                playlists.map(playlist => (
+                                    <LargeSidebarItem
+                                        key={playlist.id}
+                                        IconOrImgUrl={ListVideo}
+                                        title={playlist.name}
+                                        url={`/`}
+                                        moreClassNames={isLoadingPlaylists ? "animate-pulse" : ""}
+                                    />
+                                ))
+                                :
+                                isErrorPlaylists || allPlaylists === undefined ?
+                                    null
+                                    :
+                                    allPlaylists.items.map(playlist => (
+                                        <LargeSidebarItem
+                                            key={playlist.id}
+                                            IconOrImgUrl={ListVideo}
+                                            title={playlist.snippet.title}
+                                            url={`https://www.youtube.com/playlist?list=${playlist.id}`}
+                                        />
+                                    ))
+                    }
                 </LargeSidebarSection>
-                <hr />
-                <LargeSidebarSection title="Subscriptions" visibleItemCount={5}>
-                    {subscriptions.map((subscription) => {
-                        return (
-                            <LargeSidebarItem
-                                key={subscription.id}
-                                IconOrImgUrl={subscription.imgUrl}
-                                title={subscription.channelName}
-                                url={`/@${subscription.id}`}
-                            />
-                        )
-                    })}
-                </LargeSidebarSection>
+                {
+                    (isSignedIn !== undefined && isSignedIn === true && isLoaded === true) ?
+                        <>
+                            <hr />
+                            <LargeSidebarSection title="Subscriptions" visibleItemCount={5}>
+                                {
+                                    isLoadingSubscriptions ?
+                                        subscriptions.map((subscription) => {
+                                            return (
+                                                <LargeSidebarItem
+                                                    key={subscription.id}
+                                                    IconOrImgUrl={subscription.imgUrl}
+                                                    title={subscription.channelName}
+                                                    url={`/@${subscription.id}`}
+                                                    moreClassNames={isLoadingSubscriptions ? "animate-pulse" : ""}
+                                                />
+                                            )
+                                        })
+                                        :
+                                        allSubscriptions === undefined || isErrorSubscriptions ?
+                                            null
+                                            :
+                                            allSubscriptions.items.map((subscription) => {
+                                                return (
+                                                    <LargeSidebarItem
+                                                        key={subscription.id}
+                                                        IconOrImgUrl={subscription.snippet.thumbnails.high.url}
+                                                        title={subscription.snippet.title}
+                                                        url={`https://www.youtube.com/${subscription.channelInfo.items[0].snippet.customUrl}`}
+                                                    />
+                                                )
+                                            })
+                                }
+                            </LargeSidebarSection>
+                        </>
+                        :
+                        <>
+                            <hr />
+                            <div className="flex justify-center items-center p-5">
+                                <p>Sign in to like videos, comment, and subscribe.</p>
+                            </div>
+                        </>
+                }
                 <hr />
                 <LargeSidebarSection title="Explore">
                     <LargeSidebarItem
@@ -148,6 +230,10 @@ function SideBar() {
                         title="Podcasts"
                         url="/podcasts"
                     />
+                </LargeSidebarSection>
+                <hr />
+                <LargeSidebarSection>
+                    <p className="flex justify-center text-primary/50">2023 Goggle LLC</p>
                 </LargeSidebarSection>
             </aside>
         </>
@@ -213,19 +299,20 @@ type LargeSidebarItemProps = {
     title: string
     url: string
     isActive?: boolean
+    moreClassNames?: string
 }
-function LargeSidebarItem({ isActive = false, IconOrImgUrl, title, url }: LargeSidebarItemProps) {
+function LargeSidebarItem({ isActive = false, IconOrImgUrl, title, url, moreClassNames }: LargeSidebarItemProps) {
     return (
         <a
             href={url}
-            className={twMerge(buttonStyles({ variant: "ghost" }), `${isActive ? "font-bold bg-primary-foreground hover:bg-primary-foreground" : ""} w-full flex items-center rounded-lg gap-4 p-3`)}
+            className={twMerge(buttonStyles({ variant: "ghost" }), `${moreClassNames} ${isActive ? "font-bold bg-primary-foreground hover:bg-primary-foreground" : ""} w-full flex items-center rounded-lg gap-4 p-3`)}
         >
             {typeof IconOrImgUrl === "string" ?
                 <img src={IconOrImgUrl} className="w-6 h-6 rounded-full" />
                 :
                 <IconOrImgUrl className="w-6 h-6" />
             }
-            <div className='whitespace-nowrap overflow-hidden text-ellipsis'>{title}</div>
+            <div className='whitespace-nowrap overflow-hidden text-ellipsis'>{title.slice(0, 13)}{title.length > 13 ? "..." : ""}</div>
         </a>
     )
 }

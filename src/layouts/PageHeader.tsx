@@ -1,14 +1,18 @@
-import { Menu, Upload, Bell, User, Mic, Search, ArrowLeft } from 'lucide-react'
+import { Menu, /* Upload, */ Bell, User, Mic, Search, ArrowLeft } from 'lucide-react'
 import logo from '../assets/logo.png'
 import Button from '../components/Button'
 import { useState } from 'react'
 import { useSidebarContext } from '../contexts/SidebarContext'
 import { ModeToggle } from '@/components/mode-toogle'
 import { useTheme } from "@/components/theme-provider"
+import { SignInButton, UserButton } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
+import { dark } from '@clerk/themes';
 
 function PageHeader() {
     const [showFullWidthSearch, setShowFullWidthSearch] = useState(false)
-    
+    const { isSignedIn, isLoaded } = useAuth();
+    const { theme } = useTheme()
 
     return (
         <div className="flex gap-10 lg:gap-20 justify-between pt-2 mb-6 mx-4">
@@ -46,16 +50,49 @@ function PageHeader() {
                 <Button size={"icon"} variant={"ghost"} className='md:hidden'>
                     <Mic />
                 </Button>
-                <Button size={"icon"} variant={"ghost"}>
-                    <Upload />
-                </Button>
+
                 <Button size={"icon"} variant={"ghost"}>
                     <Bell />
                 </Button>
-                <Button size={"icon"} variant={"ghost"}>
-                    <User />
-                </Button>
+
                 <ModeToggle />
+
+                {
+                    isLoaded === false &&
+                    <Button size={"icon"} variant={"ghost"}>
+                        <User />
+                    </Button>
+                }
+
+                {
+                    isSignedIn ?
+                        <Button size={'icon'}>
+                            <UserButton
+                                userProfileProps={{
+                                    additionalOAuthScopes: {
+                                        google: [
+                                            'https://www.googleapis.com/auth/youtube.readonly',
+                                            'https://www.googleapis.com/auth/youtube',
+                                            'openid',
+                                            'https://www.googleapis.com/auth/userinfo.email',
+                                            'https://www.googleapis.com/auth/userinfo.profile',
+                                            'https://www.googleapis.com/auth/youtube.download'
+                                        ]
+                                    }
+                                }}
+                                appearance={{
+                                    baseTheme: (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches) || theme === "dark" ? dark : undefined
+                                }}
+                                afterSignOutUrl='http://localhost:5173'
+                            />
+                        </Button>
+                        :
+                        <SignInButton>
+                            <Button size={"icon"} variant={"ghost"}>
+                                <User />
+                            </Button>
+                        </SignInButton>
+                }
             </div>
         </div>
     )
@@ -74,7 +111,7 @@ export function PageHeaderFirstSection({ hidden }: PageHeaderFirstSectionProps) 
                 <Menu className='text-xl' />
             </Button>
             <a href="/">
-                <img style={ theme === "dark" ? {filter: "invert(120)"} : {}} src={logo} className='h-6' />
+                <img style={(theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches) || theme === "dark" ? { filter: "invert(120)" } : {}} src={logo} className='h-6' />
             </a>
         </div>
     )
