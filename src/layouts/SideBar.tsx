@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Clapperboard, Clock, Home, PlaySquareIcon, PlaySquare, Repeat, History, ListVideo, Flame, ShoppingBag, Music2, Film, Radio, Gamepad2, Newspaper, Trophy, Lightbulb, Shirt, Podcast, ThumbsUp, User } from "lucide-react"
+import { ChevronDown, ChevronUp, MailCheck, Clock, Home, BookMarked, PlaySquare, Repeat, History, ListVideo, Flame, ShoppingBag, Music2, Film, Radio, Gamepad2, Newspaper, Trophy, Lightbulb, Shirt, Podcast, ThumbsUp, User } from "lucide-react"
 import { ElementType } from 'react'
 import Button, { buttonStyles } from '../components/Button'
 import { twMerge } from 'tailwind-merge'
@@ -71,7 +71,7 @@ function SideBar({ }: SideBarProps) {
             setTimeout(() => {
                 queryClient.cancelQueries(["YouTubeApiSubscription"])
                 queryClient.cancelQueries(["YouTubeApiPlaylists"])
-            }, 5000)
+            }, 15000)
         }
     })
 
@@ -81,8 +81,8 @@ function SideBar({ }: SideBarProps) {
             <aside className={`sticky top-0 overflow-y-auto scrollbar-hidden pb-4 flex flex-col ml-1 ${isLargeOpen ? "lg:hidden" : "lg:flex"}`}>
                 <SmallSidebarItem IconOrImgUrl={Home} title="Home" url="/home" />
                 <SmallSidebarItem IconOrImgUrl={Repeat} title="Shorts" url="/shorts" />
-                <SmallSidebarItem IconOrImgUrl={Clapperboard} title="Subscriptions" url="/subscriptions" />
-                <SmallSidebarItem IconOrImgUrl={PlaySquareIcon} title="Library" url="/library" />
+                <SmallSidebarItem IconOrImgUrl={MailCheck} title="Subscriptions" url="/subscriptions" />
+                <SmallSidebarItem IconOrImgUrl={BookMarked} title="Library" url="/library" />
                 <SmallSidebarItem IconOrImgUrl={History} title="History" url="/history" />
             </aside>
             {isSmallOpen && (
@@ -103,12 +103,12 @@ function SideBar({ }: SideBarProps) {
                 <LargeSidebarSection>
                     <LargeSidebarItem isActive IconOrImgUrl={Home} title="Home" url="/home" />
                     <LargeSidebarItem IconOrImgUrl={Repeat} title="Shorts" url="/shorts" />
-                    <LargeSidebarItem IconOrImgUrl={Clapperboard} title="Subscriptions" url="/subscriptions" />
+                    <LargeSidebarItem IconOrImgUrl={MailCheck} title="Subscriptions" url="/subscriptions" />
                 </LargeSidebarSection>
                 <hr />
                 <LargeSidebarSection visibleItemCount={7}>
                     <LargeSidebarItem
-                        IconOrImgUrl={PlaySquareIcon}
+                        IconOrImgUrl={BookMarked}
                         title="Library"
                         url="/library"
                     />

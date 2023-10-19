@@ -61,13 +61,13 @@ function App() {
     },
   })
 
-  useEffect(() => localStorage.setItem("CHARACTERS_APP_SEARCHPARAMS", JSON.stringify(getSearchParamsFormatted(searchParams))), [searchParams]);
+  useEffect(() => localStorage.setItem("YOUTUBE_SEARCHPARAMS", JSON.stringify(getSearchParamsFormatted(searchParams))), [searchParams]);
 
   useEffect(() => {
     if (isLoadingVideos) {
       setTimeout(() => {
         queryClient.cancelQueries(["YouTubeApiVideos"])
-      }, 7000)
+      }, 15000)
     }
   })
 
@@ -77,7 +77,6 @@ function App() {
       prev.set("category_id", category_id)
       return prev
     })
-
     refetchAllVideos()
   }
 

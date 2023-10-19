@@ -55,7 +55,8 @@ function VideoGridItems({ /* kind, */ contentDetails, /* etag, */ id, snippet, s
             onMouseLeave={() => setIsVideoPlaying(false)}
         >
             <a
-                href={`/watch?v=${id}`}
+                href={`https://www.youtube.com/watch?v=${id}`}
+                target="_blank"
                 className='relative '
             // className='relative h-[20vh] sm:h-[35vh] md:h-[30vh] xl:h-[18.2vh]'
             // className='relative aspect-video max-h-[11rem] sm:max-h-[12vh] md:max-h-[25vh] lg:h-[14.2rem] xl:max-h-[11rem]'
@@ -64,11 +65,12 @@ function VideoGridItems({ /* kind, */ contentDetails, /* etag, */ id, snippet, s
                     <img
                         style={{ boxShadow: 'none', borderImage: '' }}
                         src={snippet.thumbnails.high.url}
-                        className={`block w-full h-full object-cover transition-[border-radius] duration-200 ${isVideoPlaying ? "rounded-none" : "rounded-xl"}`}
+                        // className={`block w-full h-full object-cover transition-[border-radius] duration-200 ${isVideoPlaying ? "rounded-none" : "rounded-xl"}`}
+                        className={`block w-full h-full object-cover transition-[border-radius] duration-200 rounded-xl`}
                     />
                 </AspectRatio>
                 <div className='absolute bottom-1 right-1 bg-background text-background-foreground text-sm px-0.5 rounded'>
-                    {iso8601DurationToTime(contentDetails.duration)}
+                    {parseInt(iso8601DurationToTime(contentDetails.duration)) < 60 ? `00:${iso8601DurationToTime(contentDetails.duration)}` : iso8601DurationToTime(contentDetails.duration)}
                 </div>
 
                 {/*  <iframe
@@ -119,6 +121,7 @@ function VideoGridItems({ /* kind, */ contentDetails, /* etag, */ id, snippet, s
             >
                 <a
                     href={`https://www.youtube.com/${channelInfo.items[0].snippet.customUrl}`}
+                    target="_blank"
                     className='flex-shrink-0'
                 >
                     <img
@@ -131,13 +134,15 @@ function VideoGridItems({ /* kind, */ contentDetails, /* etag, */ id, snippet, s
                 </a>
                 <div className='flex flex-col'>
                     <a
-                        href={`/watch?v=${id}`}
+                        href={`https://www.youtube.com/watch?v=${id}`}
+                        target="_blank"
                         className='font-bold'
                     >
                         {snippet.title}
                     </a>
                     <a
                         href={`https://www.youtube.com/${channelInfo.items[0].snippet.customUrl}`}
+                        target="_blank"
                         className='text-background-foreground text-sm hover:font-bold'
                     >
                         {snippet.channelTitle}
