@@ -310,7 +310,7 @@ export const videos = [
 export const categoryAll: YouTubeVideoCategory = {
   kind: "youtube#videoCategory",
   etag: "",
-  id: "All",
+  id: "999",
   snippet: {
     channelId: "UCBR8-60-B28hp2BmDPdntcQ",
     title: "All",

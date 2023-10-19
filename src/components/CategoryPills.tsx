@@ -2,25 +2,24 @@ import { useState, useRef, useEffect } from 'react'
 import Button from "./Button"
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { categories, categoryAll } from '@/data/home'
-import { YouTubeVideoCategory, YouTubeVideoCategoryListResponse, /* YouTubeVideoListResponse */ } from '@/utils/types'
-import { /* QueryObserverResult, RefetchOptions, RefetchQueryFilters, */ useQuery } from 'react-query'
-import { API_URL_CATEGORIES, REACT_QUERY_DEFAULT_PROPERTIES, apiKey } from '../data/constants'
+import { YouTubeVideoCategoryListResponse } from '@/utils/types'
+import { useQuery } from 'react-query'
+import { API_URL_CATEGORIES, CATEGORIES_THAT_RETURN_ERROR, REACT_QUERY_DEFAULT_PROPERTIES, apiKey } from '../data/constants'
 import axios from 'axios'
 
 type CategoryPillsProps = {
-    setSelectedCategory: (category: YouTubeVideoCategory) => void
-    selectedCategory: YouTubeVideoCategory;
-    // refetchAllVideos: <TPageData>(options?: (RefetchOptions & RefetchQueryFilters<TPageData>) | undefined) => Promise<QueryObserverResult<YouTubeVideoListResponse, unknown>>
+    categoryNameSeachParams: string
+    setCategoryNameAndIdOnSearchParams: (category_name: string, category_id: string) => void
 }
 
 const TRANSLATE_AMOUNT = 200
 
-function CategoryPills({ setSelectedCategory, selectedCategory }: CategoryPillsProps) {
+function CategoryPills({ categoryNameSeachParams, setCategoryNameAndIdOnSearchParams }: CategoryPillsProps) {
+    
     const [isLeftVisible, setIsLeftVisible] = useState(false)
     const [isRightVisible, setIsRightVisible] = useState(false)
     const [translate, setTranslate] = useState(0)
     const containerRef = useRef<HTMLDivElement>(null)
-
 
 
     const { isLoading: isLoadingCategories, isError: isErrorCategories, data: allCategories } = useQuery<YouTubeVideoCategoryListResponse>({
@@ -82,27 +81,29 @@ function CategoryPills({ setSelectedCategory, selectedCategory }: CategoryPillsP
                             <>
                                 <Button
                                     onClick={() => {
-                                        setSelectedCategory(categoryAll)
+                                        setCategoryNameAndIdOnSearchParams(categoryAll.snippet.title, categoryAll.id)
                                     }}
-                                    variant={"All" === selectedCategory.snippet.title ? "dark" : null}
+                                    variant={"All" === categoryNameSeachParams ? "dark" : null}
                                     className="py-1 px-3 rounded-lg whitespace-nowrap"
                                 >
                                     All
                                 </Button>
                                 {
                                     allCategories.items.map((category) => {
-                                        return (
-                                            <Button
-                                                key={category.id}
-                                                onClick={() => {
-                                                    setSelectedCategory(category)
-                                                }}
-                                                variant={category.snippet.title === selectedCategory.snippet.title ? "dark" : null}
-                                                className="py-1 px-3 rounded-lg whitespace-nowrap"
-                                            >
-                                                {category.snippet.title}
-                                            </Button>
-                                        )
+                                        if(!CATEGORIES_THAT_RETURN_ERROR.includes(category.snippet.title)){
+                                            return (
+                                                <Button
+                                                    key={category.id}
+                                                    onClick={() => {
+                                                        setCategoryNameAndIdOnSearchParams(category.snippet.title, category.id)
+                                                    }}
+                                                    variant={category.snippet.title === categoryNameSeachParams ? "dark" : null}
+                                                    className="py-1 px-3 rounded-lg whitespace-nowrap"
+                                                >
+                                                    {category.snippet.title}
+                                                </Button>
+                                            )
+                                        }
                                     })
                                 }
                             </>

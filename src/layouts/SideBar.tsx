@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Clapperboard, Clock, Home, Library, PlaySquare, Repeat, History, ListVideo, Flame, ShoppingBag, Music2, Film, Radio, Gamepad2, Newspaper, Trophy, Lightbulb, Shirt, Podcast, ThumbsUp } from "lucide-react"
+import { ChevronDown, ChevronUp, Clapperboard, Clock, Home, PlaySquareIcon, PlaySquare, Repeat, History, ListVideo, Flame, ShoppingBag, Music2, Film, Radio, Gamepad2, Newspaper, Trophy, Lightbulb, Shirt, Podcast, ThumbsUp, User } from "lucide-react"
 import { ElementType } from 'react'
 import Button, { buttonStyles } from '../components/Button'
 import { twMerge } from 'tailwind-merge'
@@ -10,9 +10,14 @@ import { ChannelInfoResponse, YouTubePlaylistListResponse, YouTubeSubscription, 
 import { useQuery } from 'react-query'
 import { API_URL_CHANNELS, REACT_QUERY_DEFAULT_PROPERTIES, URL_CLERK_API, apiKey, clerkSecretKey } from '../data/constants'
 import axios from 'axios'
-import { useAuth } from "@clerk/clerk-react";
+import { SignInButton, useAuth } from "@clerk/clerk-react";
+import { useEffect } from 'react'
+import { queryClient } from "@/main"
 
 type SideBarProps = {}
+
+// apply this to the youtube api
+// https://www.youtube.com/watch?v=IAZLgLyFDJg&ab_channel=Joshtriedcoding
 
 function SideBar({ }: SideBarProps) {
     const { isLargeOpen, isSmallOpen, close } = useSidebarContext()
@@ -60,13 +65,25 @@ function SideBar({ }: SideBarProps) {
         }
     })
 
+
+    useEffect(() => {
+        if(isLoadingPlaylists || isLoadingSubscriptions){
+            setTimeout(() => {
+                queryClient.cancelQueries(["YouTubeApiSubscription"])
+                queryClient.cancelQueries(["YouTubeApiPlaylists"])
+            }, 5000)
+        }
+    })
+
+
     return (
         <>
             <aside className={`sticky top-0 overflow-y-auto scrollbar-hidden pb-4 flex flex-col ml-1 ${isLargeOpen ? "lg:hidden" : "lg:flex"}`}>
                 <SmallSidebarItem IconOrImgUrl={Home} title="Home" url="/home" />
                 <SmallSidebarItem IconOrImgUrl={Repeat} title="Shorts" url="/shorts" />
                 <SmallSidebarItem IconOrImgUrl={Clapperboard} title="Subscriptions" url="/subscriptions" />
-                <SmallSidebarItem IconOrImgUrl={Library} title="Library" url="/library" />
+                <SmallSidebarItem IconOrImgUrl={PlaySquareIcon} title="Library" url="/library" />
+                <SmallSidebarItem IconOrImgUrl={History} title="History" url="/history" />
             </aside>
             {isSmallOpen && (
                 <div
@@ -75,7 +92,8 @@ function SideBar({ }: SideBarProps) {
                 />
             )}
             <aside
-                className={`w-56 lg:sticky absolute top-0 overflow-y-auto scrollbar-hidden pb-4 flex-col gap-2 px-2 ${isLargeOpen ? "lg:flex" : "lg:hidden"} ${isSmallOpen ? "flex z-[999] bg-background max-h-screen" : "hidden"}`}
+                id="largeSideBar"
+                className={`w-56 bg-background z-[999] lg:sticky absolute top-0 overflow-y-auto scrollbar-hidden pb-4 flex-col gap-2 px-2 ${isLargeOpen ? "lg:flex animate-slideIn-left" : "lg:hidden"} ${isSmallOpen ? "flex z-[999] bg-background max-h-screen animate-slideIn-left" : "animate-slideOut-right lg:animate-none transition-none"}`}
             >
                 <div className="lg:hidden pt-2 pb-4 px-2 sticky top-0 bg-background">
                     <PageHeaderFirstSection
@@ -90,7 +108,7 @@ function SideBar({ }: SideBarProps) {
                 <hr />
                 <LargeSidebarSection visibleItemCount={7}>
                     <LargeSidebarItem
-                        IconOrImgUrl={Library}
+                        IconOrImgUrl={PlaySquareIcon}
                         title="Library"
                         url="/library"
                     />
@@ -99,21 +117,27 @@ function SideBar({ }: SideBarProps) {
                         title="History"
                         url="/history"
                     />
-                    <LargeSidebarItem
-                        IconOrImgUrl={PlaySquare}
-                        title="Your Videos"
-                        url="/your-videos"
-                    />
-                    <LargeSidebarItem
-                        IconOrImgUrl={Clock}
-                        title="Watch Later"
-                        url="/playlist?list=WL"
-                    />
-                    <LargeSidebarItem
-                        IconOrImgUrl={ThumbsUp}
-                        title="Liked videos"
-                        url="/playlist?list=WL"
-                    />
+                    {
+                        (isSignedIn !== undefined && isSignedIn !== false) ?
+                            <>
+                                <LargeSidebarItem
+                                    IconOrImgUrl={PlaySquare}
+                                    title="Your Videos"
+                                    url="/your-videos"
+                                />
+                                <LargeSidebarItem
+                                    IconOrImgUrl={Clock}
+                                    title="Watch Later"
+                                    url="/playlist?list=WL"
+                                />
+                                <LargeSidebarItem
+                                    IconOrImgUrl={ThumbsUp}
+                                    title="Liked videos"
+                                    url="/playlist?list=WL"
+                                />
+                            </>
+                            : null
+                    }
                     {
                         (isSignedIn === undefined || isSignedIn === false) ?
                             null
@@ -130,7 +154,9 @@ function SideBar({ }: SideBarProps) {
                                 ))
                                 :
                                 isErrorPlaylists || allPlaylists === undefined ?
-                                    null
+                                    <div className="flex flex-col justify-center items-start gap-5 p-5 ">
+                                        <p>An error happend looking for playlists.</p>
+                                    </div>
                                     :
                                     allPlaylists.items.map(playlist => (
                                         <LargeSidebarItem
@@ -162,7 +188,9 @@ function SideBar({ }: SideBarProps) {
                                         })
                                         :
                                         allSubscriptions === undefined || isErrorSubscriptions ?
-                                            null
+                                            <div className="flex flex-col justify-center items-start gap-5 p-5 ">
+                                                <p>An error happend looking for playlists.</p>
+                                            </div>
                                             :
                                             allSubscriptions.items.map((subscription) => {
                                                 return (
@@ -180,8 +208,14 @@ function SideBar({ }: SideBarProps) {
                         :
                         <>
                             <hr />
-                            <div className="flex justify-center items-center p-5">
+                            <div className="flex flex-col justify-center items-start gap-5 p-5 ">
                                 <p>Sign in to like videos, comment, and subscribe.</p>
+                                <SignInButton>
+                                    <Button className='flex justify-center items-center gap-2 border-muted-foreground border rounded-full p-2' variant={"ghost"}>
+                                        <User />
+                                        Sign In
+                                    </Button>
+                                </SignInButton>
                             </div>
                         </>
                 }
@@ -249,10 +283,10 @@ function SmallSidebarItem({ IconOrImgUrl, title, url }: SmallSidebarItemProps) {
     return (
         <a
             href={url}
-            className={twMerge(buttonStyles({ variant: "ghost" }), "py-4 px-1 flex flex-col items-center rounded-lg gap-1")}
+            className={twMerge(buttonStyles({ variant: "ghost" }), "py-4 px-0 flex flex-col items-center rounded-lg gap-1")}
         >
             <IconOrImgUrl className="w-6 h-6" />
-            <div className='text-sm'>{title}</div>
+            <div className='text-xs'>{title}</div>
         </a>
     )
 }
@@ -305,7 +339,7 @@ function LargeSidebarItem({ isActive = false, IconOrImgUrl, title, url, moreClas
     return (
         <a
             href={url}
-            className={twMerge(buttonStyles({ variant: "ghost" }), `${moreClassNames} ${isActive ? "font-bold bg-primary-foreground hover:bg-primary-foreground" : ""} w-full flex items-center rounded-lg gap-4 p-3`)}
+            className={twMerge(buttonStyles({ variant: "ghost" }), `${moreClassNames} ${isActive ? "font-bold bg-primary-foreground hover:bg-primary-foreground" : ""} w-full flex items-center rounded-lg gap-4 p-3 px-5`)}
         >
             {typeof IconOrImgUrl === "string" ?
                 <img src={IconOrImgUrl} className="w-6 h-6 rounded-full" />

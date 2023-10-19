@@ -4,20 +4,22 @@ import PageHeader from "./layouts/PageHeader"
 import VideoGridItems from './components/VideoGridItems'
 import SideBar from './layouts/SideBar'
 import { SidebarProvider } from './contexts/SidebarContext'
-import { API_URL_CHANNELS, API_URL_VIDEOS, REACT_QUERY_DEFAULT_PROPERTIES, apiKey } from './data/constants'
+import { API_URL_CHANNELS, API_URL_VIDEOS, DEFAULT_SEARCHPARAMS, REACT_QUERY_DEFAULT_PROPERTIES, apiKey, getSearchParamsFormatted } from './data/constants'
 import axios from "axios"
-import { ChannelInfoResponse, VideoItem, YouTubeVideoCategory, YouTubeVideoListResponse } from './utils/types'
+import { ChannelInfoResponse, VideoItem, YouTubeVideoListResponse } from './utils/types'
 import { useQuery } from 'react-query'
 import VideoGridLoadingItems from './components/VideoGridLoadingItems'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom'
 import useLocalStorage from './hooks/useLocalStorage'
-import { categoryAll } from './data/home'
+import { queryClient } from './main'
 
 //https://developers.google.com/youtube/v3/docs
 //https://console.cloud.google.com/apis/credentials?project=youtube-production-402002
 
 function App() {
-  const [selectedCategory, setSelectedCategory] = useState<YouTubeVideoCategory>(categoryAll)
+  const [searchParams, setSearchParams] = useSearchParams(JSON.parse(localStorage.getItem("YOUTUBE_SEARCHPARAMS") ?? JSON.stringify(DEFAULT_SEARCHPARAMS)))
+  const { category_name, category_id } = getSearchParamsFormatted(searchParams)
+
   const [nextPageToken, setNextPageToken] = useLocalStorage("YOUTUBE_NEXTPAGETOKEN", "")
 
   const [shuffledVideos, setShuffledVideos] = useState<VideoItem[]>([])
@@ -31,7 +33,7 @@ function App() {
       const configVideos = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${API_URL_VIDEOS}?part=snippet%2CcontentDetails%2Cstatistics%2Cplayer&maxResults=50&chart=mostPopular${nextPageToken !== "" ? `&pageToken=${nextPageToken}` : ""}&regionCode=US${selectedCategory.snippet.title !== "All" ? `&videoCategoryId=${selectedCategory.id}` : ""}&key=${apiKey}`,
+        url: `${API_URL_VIDEOS}?part=snippet%2CcontentDetails%2Cstatistics%2Cplayer&maxResults=50&chart=mostPopular${nextPageToken !== "" ? `&pageToken=${nextPageToken}` : ""}&regionCode=US${category_id !== 999 ? `&videoCategoryId=${category_id}` : ""}&key=${apiKey}`,
       };
 
       const responseVideos = await axios.request<YouTubeVideoListResponse>(configVideos).then(async (dataVideos) => {
@@ -59,9 +61,25 @@ function App() {
     },
   })
 
+  useEffect(() => localStorage.setItem("CHARACTERS_APP_SEARCHPARAMS", JSON.stringify(getSearchParamsFormatted(searchParams))), [searchParams]);
+
   useEffect(() => {
+    if (isLoadingVideos) {
+      setTimeout(() => {
+        queryClient.cancelQueries(["YouTubeApiVideos"])
+      }, 7000)
+    }
+  })
+
+  function setCategoryNameAndIdOnSearchParams(category_name: string, category_id: string) {
+    setSearchParams((prev) => {
+      prev.set("category_name", category_name)
+      prev.set("category_id", category_id)
+      return prev
+    })
+
     refetchAllVideos()
-  }, [selectedCategory])
+  }
 
   return (
     <SidebarProvider>
@@ -76,14 +94,14 @@ function App() {
                 <div className='overflow-x-hidden px-8 pb-4'>
                   <div className="sticky top-0 bg-background z-10 pb-4">
                     <CategoryPills
-                      selectedCategory={selectedCategory}
-                      setSelectedCategory={setSelectedCategory}
+                      categoryNameSeachParams={category_name}
+                      setCategoryNameAndIdOnSearchParams={setCategoryNameAndIdOnSearchParams}
                     />
                   </div>
                   {
                     isLoadingVideos || isFetchingVideos ?
                       <div className='grid gap-4 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]'>
-                        {new Array(17).fill(0).map((_, index) => {
+                        {new Array(20).fill(0).map((_, index) => {
                           return (
                             <VideoGridLoadingItems
                               key={index}

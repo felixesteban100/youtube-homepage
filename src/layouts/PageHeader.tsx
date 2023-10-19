@@ -1,4 +1,4 @@
-import { Menu, /* Upload, */ Bell, User, Mic, Search, ArrowLeft } from 'lucide-react'
+import { Menu, User, Mic, Search, ArrowLeft } from 'lucide-react'
 import logo from '../assets/logo.png'
 import Button from '../components/Button'
 import { useState } from 'react'
@@ -16,9 +16,7 @@ function PageHeader() {
 
     return (
         <div className="flex gap-10 lg:gap-20 justify-between pt-2 mb-6 mx-4">
-            <PageHeaderFirstSection
-                hidden={showFullWidthSearch}
-            />
+            <PageHeaderFirstSection hidden={showFullWidthSearch}/>
             <form className={` gap-4 flex-grow justify-center ${showFullWidthSearch ? "flex" : "hidden md:flex"}`}>
                 <Button
                     onClick={() => setShowFullWidthSearch(false)}
@@ -50,20 +48,13 @@ function PageHeader() {
                 <Button size={"icon"} variant={"ghost"} className='md:hidden'>
                     <Mic />
                 </Button>
-
-                <Button size={"icon"} variant={"ghost"}>
-                    <Bell />
-                </Button>
-
                 <ModeToggle />
-
                 {
                     isLoaded === false &&
                     <Button size={"icon"} variant={"ghost"}>
                         <User />
                     </Button>
                 }
-
                 {
                     isSignedIn ?
                         <Button size={'icon'}>
@@ -88,8 +79,9 @@ function PageHeader() {
                         </Button>
                         :
                         <SignInButton>
-                            <Button size={"icon"} variant={"ghost"}>
+                            <Button className='flex justify-center items-center gap-2 border-muted-foreground border rounded-full p-2' variant={"ghost"}>
                                 <User />
+                                Sign In
                             </Button>
                         </SignInButton>
                 }
@@ -106,8 +98,8 @@ export function PageHeaderFirstSection({ hidden }: PageHeaderFirstSectionProps) 
     const { toogle } = useSidebarContext()
     const { theme } = useTheme()
     return (
-        <div className={`flex gap-2 items-center flex-shrink-0 ${hidden ? "hidden md:flex" : "flex"}`}>
-            <Button onClick={toogle} variant="ghost" className='mx-[0.9rem]'>
+        <div className={`flex gap-2 items-center flex-shrink-0 ${hidden ? "hidden md:flex" : "flex"} px-1`}>
+            <Button onClick={toogle} variant="ghost" className=''>
                 <Menu className='text-xl' />
             </Button>
             <a href="/">
