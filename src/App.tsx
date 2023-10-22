@@ -191,7 +191,7 @@ function App() {
                 element={
                   <div className='overflow-x-visible lg:overflow-x-hidden pl-8 pb-4 flex flex-col lg:flex-row'>
                     {
-                      allVideos !== undefined && likedVideos !== null && isErrorVideos === false ?
+                      likedVideos !== null && isErrorVideos === false ?
                         <div className='w-[25rem] flex-shrink-0 mt-5 rounded-xl flex-col sticky top-0 overflow-hidden hidden lg:flex justify-start pt-5 gap-10 items-center'>
                           <img className='blur-3xl h-[70vh] w-[20vw] object-cover aspect-video' src={likedVideos.items[0].snippet.thumbnails.high.url} alt="" />
                           <div className='absolute w-[90%] flex flex-col gap-2'>
@@ -219,7 +219,7 @@ function App() {
                     }
 
                     {
-                      allVideos !== undefined && likedVideos !== null && isErrorVideos === false ?
+                      likedVideos !== null && isErrorVideos === false ?
                         <div className='h-[40vh] md:h-[25vh] flex lg:hidden justify-around pt-5 gap-10 items-center relative'>
                           <img className='blur-3xl aspect-video ml-[10%] w-[100vw] h-[20vh] md:h-[15vh] object-cover' src={likedVideos.items[0].snippet.thumbnails.high.url} alt="" />
                           <div className='absolute w-[100%] flex flex-col md:flex-row justify-start items-center gap-5'>
