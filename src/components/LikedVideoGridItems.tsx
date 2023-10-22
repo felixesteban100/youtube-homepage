@@ -9,7 +9,7 @@ const VIEW_FORMATTER = Intl.NumberFormat(undefined, {
     notation: "compact"
 })
 
-function LikedVideoGridItems({ id, snippet, statistics, channelInfo, index/* , player */ }: LikedVideoGridItemsProps) {
+function LikedVideoGridItems({ id, snippet, statistics, channelInfo, index }: LikedVideoGridItemsProps) {
     return (
         <div
             // href={`https://www.youtube.com/watch?v=${id}`}

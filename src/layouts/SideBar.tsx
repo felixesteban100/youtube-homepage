@@ -14,10 +14,9 @@ import { SignInButton, useAuth } from "@clerk/clerk-react";
 import { useEffect } from 'react'
 import { queryClient } from "@/main"
 import { useLocation, Link } from "react-router-dom"
+import useLocalStorage from "@/hooks/useLocalStorage"
 
-type SideBarProps = {
-    // ChangeSideBarOtion: (option: string) => void;
-}
+type SideBarProps = {}
 
 // apply this to the youtube api
 // https://www.youtube.com/watch?v=IAZLgLyFDJg&ab_channel=Joshtriedcoding
@@ -28,7 +27,10 @@ function SideBar({ }: SideBarProps) {
     const { isLargeOpen, isSmallOpen, close } = useSidebarContext()
     const { isLoaded, isSignedIn, userId } = useAuth()
 
-    const { isLoading: isLoadingSubscriptions, isError: isErrorSubscriptions, data: allSubscriptions } = useQuery<YouTubeSubscriptionResponse>({
+    const [currentSubscriptions, setCurrentUserSubscriptions] = useLocalStorage<YouTubeSubscriptionResponse | null>("YOUTUBE_SUBSCRIPTIONS", null)
+    const [currentPlaylists, setCurrentUserPlaylists] = useLocalStorage<YouTubePlaylistListResponse | null>("YOUTUBE_PLAYLISTS", null)
+
+    const { isLoading: isLoadingSubscriptions, isError: isErrorSubscriptions/* , data: allSubscriptions */ } = useQuery<YouTubeSubscriptionResponse>({
         ...REACT_QUERY_DEFAULT_PROPERTIES,
         enabled: (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
         queryKey: ["YouTubeApiSubscription"],
@@ -36,7 +38,6 @@ function SideBar({ }: SideBarProps) {
             if (!apiKey) {
                 throw "Missing Publishable Key";
             }
-            // const responseApiBecauseClerkIsBadService = await axios.get<YouTubeSubscription>(`${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${userId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=subscriptions`)
             const responseApiBecauseClerkIsBadService = await axios.get<YouTubeSubscriptionResponse>(`${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${userId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=subscriptions`).then(async (dataSubscription) => {
                 const subscriptionsWithChannelInfoPromise: Promise<YouTubeSubscription>[] = await dataSubscription.data.items.map(async (subscription) => {
                     const configChannel = {
@@ -54,10 +55,13 @@ function SideBar({ }: SideBarProps) {
             });
 
             return responseApiBecauseClerkIsBadService
+        },
+        onSuccess: (data) => {
+            setCurrentUserSubscriptions(data)
         }
     })
 
-    const { isLoading: isLoadingPlaylists, isError: isErrorPlaylists, data: allPlaylists } = useQuery<YouTubePlaylistListResponse>({
+    const { isLoading: isLoadingPlaylists, isError: isErrorPlaylists/* , data: allPlaylists */ } = useQuery<YouTubePlaylistListResponse>({
         ...REACT_QUERY_DEFAULT_PROPERTIES,
         enabled: (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
         queryKey: ["YouTubeApiPlaylists"],
@@ -67,6 +71,9 @@ function SideBar({ }: SideBarProps) {
             }
             const responseApiBecauseClerkIsBadService = await axios.get<YouTubePlaylistListResponse>(`${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${userId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=playlists`);
             return responseApiBecauseClerkIsBadService.data
+        },
+        onSuccess: (data) => {
+            setCurrentUserPlaylists(data)
         }
     })
 
@@ -81,7 +88,7 @@ function SideBar({ }: SideBarProps) {
 
     return (
         <>
-            <aside 
+            <aside
                 className={`sticky top-0 overflow-y-auto scrollbar-hidden pb-4 flex flex-col ml-1 ${isLargeOpen ? "hidden" : "hidden lg:flex"}`}
             >
                 <SmallSidebarItem IconOrImgUrl={Home} title="Home" url="/home" />
@@ -129,21 +136,11 @@ function SideBar({ }: SideBarProps) {
                                     IconOrImgUrl={PlaySquare}
                                     title="Your Videos"
                                     url="/your-videos"
-
                                 />
                                 <LargeSidebarItem
                                     IconOrImgUrl={Clock}
                                     title="Watch Later"
                                     url="/playlist?list=WL"
-                                />
-                                <LargeSidebarItem
-                                    IconOrImgUrl={ThumbsUp}
-                                    title="Liked videos"
-                                    isActive={pathname === "/liked"}
-                                    // url="/playlist?list=WL"
-                                    url="/liked"
-
-                                // isActive={sideBarOptionSelected === "Liked videos"}
                                 />
                             </>
                             : null
@@ -152,7 +149,7 @@ function SideBar({ }: SideBarProps) {
                         (isSignedIn === undefined || isSignedIn === false) ?
                             null
                             :
-                            isLoadingPlaylists ?
+                            isLoadingPlaylists && currentPlaylists === undefined ?
                                 playlists.map(playlist => (
                                     <LargeSidebarItem
                                         key={playlist.id}
@@ -163,19 +160,27 @@ function SideBar({ }: SideBarProps) {
                                     />
                                 ))
                                 :
-                                isErrorPlaylists || allPlaylists === undefined ?
+                                (isErrorPlaylists || currentPlaylists === null) ?
                                     <div className="flex flex-col justify-center items-start gap-5 p-5 ">
                                         <p>An error happend looking for playlists.</p>
                                     </div>
                                     :
-                                    allPlaylists.items.map(playlist => (
+                                    <>
                                         <LargeSidebarItem
-                                            key={playlist.id}
-                                            IconOrImgUrl={ListVideo}
-                                            title={playlist.snippet.title}
-                                            url={`https://www.youtube.com/playlist?list=${playlist.id}`}
+                                            IconOrImgUrl={ThumbsUp}
+                                            title="Liked videos"
+                                            isActive={pathname === "/liked"}
+                                            url="/liked"
                                         />
-                                    ))
+                                        {currentPlaylists.items.map(playlist => (
+                                            <LargeSidebarItem
+                                                key={playlist.id}
+                                                IconOrImgUrl={ListVideo}
+                                                title={playlist.snippet.title}
+                                                url={`https://www.youtube.com/playlist?list=${playlist.id}`}
+                                            />
+                                        ))}
+                                    </>
                     }
                 </LargeSidebarSection>
                 {
@@ -184,7 +189,7 @@ function SideBar({ }: SideBarProps) {
                             <hr />
                             <LargeSidebarSection title="Subscriptions" visibleItemCount={5}>
                                 {
-                                    isLoadingSubscriptions ?
+                                    isLoadingSubscriptions && currentSubscriptions === undefined ?
                                         subscriptions.map((subscription) => {
                                             return (
                                                 <LargeSidebarItem
@@ -197,12 +202,12 @@ function SideBar({ }: SideBarProps) {
                                             )
                                         })
                                         :
-                                        allSubscriptions === undefined || isErrorSubscriptions ?
+                                        currentSubscriptions === null || isErrorSubscriptions ?
                                             <div className="flex flex-col justify-center items-start gap-5 p-5 ">
                                                 <p>An error happend looking for playlists.</p>
                                             </div>
                                             :
-                                            allSubscriptions.items.map((subscription) => {
+                                            currentSubscriptions.items.map((subscription) => {
                                                 return (
                                                     <LargeSidebarItem
                                                         key={subscription.id}
@@ -345,7 +350,7 @@ type LargeSidebarItemProps = {
     isActive?: boolean
     moreClassNames?: string;
 }
-function LargeSidebarItem({ isActive = false, IconOrImgUrl, title, url, moreClassNames }: LargeSidebarItemProps) {
+export function LargeSidebarItem({ isActive = false, IconOrImgUrl, title, url, moreClassNames }: LargeSidebarItemProps) {
     return (
         <Link
             to={url === undefined ? "/" : url}

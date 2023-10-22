@@ -1,6 +1,4 @@
-import { Moon, Sun } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
+import { Check } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,27 +7,35 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/theme-provider"
 
-export function ModeToggle() {
-  const { setTheme } = useTheme()
+type ModeToggleProps = {
+  children: JSX.Element
+}
+
+export function ModeToggle({ children }: ModeToggleProps) {
+  const { setTheme, theme } = useTheme()
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button className="rounded-full" variant="ghost" size="icon">
+      <DropdownMenuTrigger>
+        {children}
+        {/* <Button className="rounded-full" variant="ghost" size="icon">
           <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
-        </Button>
+        </Button> */}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("light")}>
           Light
+          {theme === "light" && <Check/>}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")}>
           Dark
+          {theme === "dark" && <Check/>}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("system")}>
           System
+          {theme === "system" && <Check/>}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

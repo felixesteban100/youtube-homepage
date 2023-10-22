@@ -9,10 +9,10 @@ import axios from "axios"
 import { ChannelInfoResponse, VideoItem, YouTubeVideoListResponse } from './utils/types'
 import { useQuery } from 'react-query'
 import VideoGridLoadingItems from './components/VideoGridLoadingItems'
-import { Navigate, Route, Routes, useSearchParams, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom'
 import useLocalStorage from './hooks/useLocalStorage'
 // import { queryClient } from './main'
-import { useAuth, useUser } from '@clerk/clerk-react'
+// import { useUser } from '@clerk/clerk-react'
 import LikedVideoGridItems from './components/LikedVideoGridItems'
 import LikedVideosCategoryPills from './components/LikedVideosCategoryPills'
 import { Button } from './components/ui/button'
@@ -22,39 +22,29 @@ import { Play, Shuffle } from 'lucide-react'
 //https://console.cloud.google.com/apis/credentials?project=youtube-production-402002
 
 function App() {
-  const { userId } = useAuth()
-  const { user } = useUser()
-
-  const { pathname } = useLocation()
+  // const { user } = useUser()
 
   const [searchParams, setSearchParams] = useSearchParams(JSON.parse(localStorage.getItem("YOUTUBE_SEARCHPARAMS") ?? JSON.stringify(DEFAULT_SEARCHPARAMS)))
   const { category_name, category_id } = getSearchParamsFormatted(searchParams)
 
   const [nextPageToken, setNextPageToken] = useLocalStorage("YOUTUBE_NEXTPAGETOKEN", "")
-
-  const [shuffledVideos, setShuffledVideos] = useState<VideoItem[]>([])
-
+  const [nextPageTokenLiked, setNextPageTokenLiked] = useLocalStorage("YOUTUBE_NEXTPAGETOKENLIKEDVIDEOS", "")
   const [likedVideos, setLikedVideos] = useLocalStorage<VideoItem[]>("YOUTUBE_LIKEDVIDEOS", [])
+  
+  const [currentUserId, setCurrentUserId] = useLocalStorage<string>("YOUTUBE_USERID", "")
+  const [shuffledVideos, setShuffledVideos] = useState<VideoItem[]>([])
 
   const { isLoading: isLoadingVideos, isError: isErrorVideos, data: allVideos, refetch: refetchAllVideos, isFetching: isFetchingVideos } = useQuery<YouTubeVideoListResponse>({
     ...REACT_QUERY_DEFAULT_PROPERTIES,
-    enabled: pathname === "/liked" ? !!userId : true,
-    // enabled: false,
     queryKey: ["YouTubeApiVideos"],
     queryFn: async () => {
       if (!apiKey) throw "Missing Publishable Key";
 
-      const configVideos = pathname !== "/liked" ? {
+      const configVideos = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `${API_URL_VIDEOS}?part=snippet%2CcontentDetails%2Cstatistics%2Cplayer&maxResults=50&chart=mostPopular${nextPageToken !== "" ? `&pageToken=${nextPageToken}` : ""}&regionCode=US${category_id !== 999 ? `&videoCategoryId=${category_id}` : ""}&key=${apiKey}`,
-      } : {
-        method: 'get',
-        maxBodyLength: Infinity,
-        url: `${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${userId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=likedVideos${nextPageToken !== "" ? `&nextPageToken=${nextPageToken}` : ""}`,
-      };
-
-      console.log(configVideos.url)
+      }
 
       const responseVideos = await axios.request<YouTubeVideoListResponse>(configVideos).then(async (dataVideos) => {
         const videosWithChannelInfoPromise: Promise<VideoItem>[] = await dataVideos.data.items.map(async (video) => {
@@ -78,8 +68,45 @@ function App() {
       if (data && data.nextPageToken) setNextPageToken(data.nextPageToken)
       if (data && !data.nextPageToken) setNextPageToken("")
       if (data) setShuffledVideos(data.items.sort(() => 0.5 - Math.random()))
+    },
+  })
 
-      if (data && pathname === "/liked") {
+  const { isLoading: isLoadingLikedVideos, isError: isErrorLikedVideos,/*  data: allLikedVideos, */ refetch: refetchLikedVideos/* , isFetching: isFetchingLikedVideos */ } = useQuery<YouTubeVideoListResponse>({
+    ...REACT_QUERY_DEFAULT_PROPERTIES,
+    enabled: currentUserId !== "",
+    queryKey: ["YouTubeApiLikedVideos"],
+    queryFn: async () => {
+      if (!apiKey) throw "Missing Publishable Key";
+
+      const configVideos = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${currentUserId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=likedVideos${nextPageTokenLiked !== "" ? `&nextPageToken=${nextPageTokenLiked}` : ""}`,
+      };
+
+      const responseLikedVideos = await axios.request<YouTubeVideoListResponse>(configVideos).then(async (dataLikedVideos) => {
+        const videosWithChannelInfoPromise: Promise<VideoItem>[] = await dataLikedVideos.data.items.map(async (video) => {
+          const configChannel = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: `${API_URL_CHANNELS}?part=snippet%2CcontentDetails%2Cstatistics&id=${video.snippet.channelId}&key=${apiKey}`,
+          };
+          const responseChannel = await axios.request<ChannelInfoResponse>(configChannel).then(data => data.data);
+          return { ...video, channelInfo: responseChannel }
+        })
+
+        return {
+          ...dataLikedVideos.data,
+          items: await Promise.all(videosWithChannelInfoPromise).then((value) => value)
+        }
+      });
+      return responseLikedVideos
+    },
+    onSettled: (data) => {
+      if (data && data.nextPageToken) setNextPageTokenLiked(data.nextPageToken)
+      if (data && !data.nextPageToken) setNextPageTokenLiked("")
+      if (data) {
+        setShuffledVideos(data.items.sort(() => 0.5 - Math.random()))
         setLikedVideos(prev => {
           return [...prev, ...data.items]
         })
@@ -87,14 +114,14 @@ function App() {
     },
   })
 
-  useEffect(() => {
-    if(pathname !== "/liked"){
-      refetchAllVideos()
-    }else if(typeof userId === "string" && pathname === "/liked"){
-      refetchAllVideos()
-    }
-    setLikedVideos([])
-  }, [/* userId,  */pathname])
+  // useEffect(() => {
+  //   if(pathname !== "/liked"){
+  //     refetchAllVideos()
+  //   }else if(typeof userId === "string" && pathname === "/liked"){
+  //     refetchAllVideos()
+  //   }
+  //   setNextPageToken("")
+  // }, [pathname])
 
   useEffect(() => localStorage.setItem("YOUTUBE_SEARCHPARAMS", JSON.stringify(getSearchParamsFormatted(searchParams))), [searchParams]);
 
@@ -119,7 +146,9 @@ function App() {
   return (
     <SidebarProvider>
       <div className="max-h-screen flex flex-col">
-        <PageHeader />
+        <PageHeader 
+          setCurrentUserId={setCurrentUserId}
+        />
         <div className="grid grid-cols-[auto,1fr] flex-grow-1 overflow-auto">
           <SideBar />
           <Routes>
@@ -137,11 +166,7 @@ function App() {
                     isLoadingVideos || isFetchingVideos ?
                       <div className='grid gap-4 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]'>
                         {new Array(20).fill(0).map((_, index) => {
-                          return (
-                            <VideoGridLoadingItems
-                              key={index}
-                            />
-                          )
+                          return <VideoGridLoadingItems key={index} />
                         })}
                       </div>
                       : isErrorVideos || allVideos === undefined ?
@@ -149,12 +174,7 @@ function App() {
                         :
                         <div className='grid gap-4 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]'>
                           {shuffledVideos.map(video => {
-                            return (
-                              <VideoGridItems
-                                key={video.id}
-                                {...video}
-                              />
-                            )
+                            return <VideoGridItems key={video.id} {...video} />
                           })}
                         </div>
                   }
@@ -172,14 +192,14 @@ function App() {
                         <div className='absolute w-[90%] flex flex-col gap-2'>
                           <img className='mx-auto left-[25%] rounded-xl' src={likedVideos[0].snippet.thumbnails.high.url} alt="" />
                           <p className='text-3xl font-bold'>Liked Videos</p>
-                          <p className='font-bold'>{user?.fullName}</p>
+                          {/* <p className='font-bold'>{user?.fullName}</p> */}
                           <div className='flex gap-2'>
                             <p className='text-sm'>{likedVideos.length + 1} Videos</p>
-                            <p className='text-sm'>Last Sign in - {user?.lastSignInAt?.toDateString()}</p>
+                            <p className='text-sm'>Last Sign in - {new Date().toDateString()}</p>
                           </div>
                           <div className='flex flex-row gap-5 my-5 w-full'>
                             <Button className='rounded-l-full rounded-r-full w-full flex gap-1'><Play />Play ALL</Button>
-                            <Button onClick={nextPageToken !== "" ? () => refetchAllVideos() : () => { }} className='rounded-l-full rounded-r-full w-full bg-secondary/50 flex gap-1' variant={nextPageToken !== "" ? 'secondary' : "destructive"}><Shuffle />Shuffle</Button>
+                            <Button onClick={nextPageToken !== "" ? () => refetchLikedVideos() : () => { }} className='rounded-l-full rounded-r-full w-full bg-secondary/50 flex gap-1' variant={nextPageToken !== "" ? 'secondary' : "destructive"}><Shuffle />Shuffle</Button>
                           </div>
                         </div>
                       </div>
@@ -188,10 +208,10 @@ function App() {
                   }
 
                   {
-                    isLoadingVideos /* || isFetchingVideos */ ?
+                    isLoadingLikedVideos && likedVideos.length === 0 /* || isFetchingVideos */ ?
                       // <p>Loading...</p>
                       null
-                      : isErrorVideos /* || allVideos === undefined */ ?
+                      : isErrorLikedVideos && likedVideos.length === 0 /* || allVideos === undefined */ ?
                         <p className='text-xl text-center'>Something went wrong fetching liked videos 😥</p>
                         :
                         <div className='flex-grow overflow-y-auto grid gap-4 grid-cols-1 xl:w-[60vw] bg-background/100'>
@@ -199,13 +219,7 @@ function App() {
                             <LikedVideosCategoryPills />
                           </div>
                           {likedVideos.map((video, index) => {
-                            return (
-                              <LikedVideoGridItems
-                                key={video.id}
-                                {...video}
-                                index={index}
-                              />
-                            )
+                            return <LikedVideoGridItems key={video.id} {...video} index={index} />
                           })}
                         </div>
                   }
