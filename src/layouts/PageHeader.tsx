@@ -74,7 +74,7 @@ function PageHeader() {
                                 appearance={{
                                     baseTheme: (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches) || theme === "dark" ? dark : undefined
                                 }}
-                                afterSignOutUrl='http://localhost:5173'
+                                afterSignOutUrl='/'
                             />
                         </Button>
                         :

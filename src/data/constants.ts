@@ -6,8 +6,7 @@ export const REACT_QUERY_DEFAULT_PROPERTIES = {
     onError: (error: any) => console.log(error),
 }
 
-// export const URL_CLERK_API = "http://localhost:5000"
-export const URL_CLERK_API = "https://clerk-api-j0cy.onrender.com"
+export const URL_CLERK_API = import.meta.env.VITE_URL_CLERK_API
 
 export const API_URL_CHANNELS = `https://youtube.googleapis.com/youtube/v3/channels`
 export const API_URL_VIDEOS = `https://youtube.googleapis.com/youtube/v3/videos`
@@ -19,7 +18,7 @@ export const clerkSecretKey = import.meta.env.VITE_CLERK_SECRET_KEY
 
 export const DEFAULT_SEARCHPARAMS = {
     category_name: 'All',
-    category_id: 999
+    category_id: 999,
 }
 
 export function getSearchParamsFormatted(searchParams: URLSearchParams) {

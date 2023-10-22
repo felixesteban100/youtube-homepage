@@ -13,13 +13,18 @@ import axios from 'axios'
 import { SignInButton, useAuth } from "@clerk/clerk-react";
 import { useEffect } from 'react'
 import { queryClient } from "@/main"
+import { useLocation, Link } from "react-router-dom"
 
-type SideBarProps = {}
+type SideBarProps = {
+    // ChangeSideBarOtion: (option: string) => void;
+}
 
 // apply this to the youtube api
 // https://www.youtube.com/watch?v=IAZLgLyFDJg&ab_channel=Joshtriedcoding
 
 function SideBar({ }: SideBarProps) {
+    const { pathname } = useLocation()
+
     const { isLargeOpen, isSmallOpen, close } = useSidebarContext()
     const { isLoaded, isSignedIn, userId } = useAuth()
 
@@ -65,9 +70,8 @@ function SideBar({ }: SideBarProps) {
         }
     })
 
-
     useEffect(() => {
-        if(isLoadingPlaylists || isLoadingSubscriptions){
+        if (isLoadingPlaylists || isLoadingSubscriptions) {
             setTimeout(() => {
                 queryClient.cancelQueries(["YouTubeApiSubscription"])
                 queryClient.cancelQueries(["YouTubeApiPlaylists"])
@@ -75,10 +79,11 @@ function SideBar({ }: SideBarProps) {
         }
     })
 
-
     return (
         <>
-            <aside className={`sticky top-0 overflow-y-auto scrollbar-hidden pb-4 flex flex-col ml-1 ${isLargeOpen ? "lg:hidden" : "lg:flex"}`}>
+            <aside 
+                className={`sticky top-0 overflow-y-auto scrollbar-hidden pb-4 flex flex-col ml-1 ${isLargeOpen ? "hidden" : "hidden lg:flex"}`}
+            >
                 <SmallSidebarItem IconOrImgUrl={Home} title="Home" url="/home" />
                 <SmallSidebarItem IconOrImgUrl={Repeat} title="Shorts" url="/shorts" />
                 <SmallSidebarItem IconOrImgUrl={MailCheck} title="Subscriptions" url="/subscriptions" />
@@ -101,7 +106,7 @@ function SideBar({ }: SideBarProps) {
                     />
                 </div>
                 <LargeSidebarSection>
-                    <LargeSidebarItem isActive IconOrImgUrl={Home} title="Home" url="/home" />
+                    <LargeSidebarItem isActive={pathname === "/"} IconOrImgUrl={Home} title="Home" url="/home" />
                     <LargeSidebarItem IconOrImgUrl={Repeat} title="Shorts" url="/shorts" />
                     <LargeSidebarItem IconOrImgUrl={MailCheck} title="Subscriptions" url="/subscriptions" />
                 </LargeSidebarSection>
@@ -110,12 +115,12 @@ function SideBar({ }: SideBarProps) {
                     <LargeSidebarItem
                         IconOrImgUrl={BookMarked}
                         title="Library"
-                        url="/library"
+                    // url="/library"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={History}
                         title="History"
-                        url="/history"
+                    // url="/history"
                     />
                     {
                         (isSignedIn !== undefined && isSignedIn !== false) ?
@@ -124,6 +129,7 @@ function SideBar({ }: SideBarProps) {
                                     IconOrImgUrl={PlaySquare}
                                     title="Your Videos"
                                     url="/your-videos"
+
                                 />
                                 <LargeSidebarItem
                                     IconOrImgUrl={Clock}
@@ -133,7 +139,11 @@ function SideBar({ }: SideBarProps) {
                                 <LargeSidebarItem
                                     IconOrImgUrl={ThumbsUp}
                                     title="Liked videos"
-                                    url="/playlist?list=WL"
+                                    isActive={pathname === "/liked"}
+                                    // url="/playlist?list=WL"
+                                    url="/liked"
+
+                                // isActive={sideBarOptionSelected === "Liked videos"}
                                 />
                             </>
                             : null
@@ -148,7 +158,7 @@ function SideBar({ }: SideBarProps) {
                                         key={playlist.id}
                                         IconOrImgUrl={ListVideo}
                                         title={playlist.name}
-                                        url={`/`}
+                                        // url={`/`}
                                         moreClassNames={isLoadingPlaylists ? "animate-pulse" : ""}
                                     />
                                 ))
@@ -181,7 +191,7 @@ function SideBar({ }: SideBarProps) {
                                                     key={subscription.id}
                                                     IconOrImgUrl={subscription.imgUrl}
                                                     title={subscription.channelName}
-                                                    url={`/@${subscription.id}`}
+                                                    // url={`/@${subscription.id}`}
                                                     moreClassNames={isLoadingSubscriptions ? "animate-pulse" : ""}
                                                 />
                                             )
@@ -224,45 +234,45 @@ function SideBar({ }: SideBarProps) {
                     <LargeSidebarItem
                         IconOrImgUrl={Flame}
                         title="Trending"
-                        url="/trending"
+                    // url="/trending"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={ShoppingBag}
                         title="Shopping"
-                        url="/shopping"
+                    // url="/shopping"
                     />
-                    <LargeSidebarItem IconOrImgUrl={Music2} title="Music" url="/music" />
+                    <LargeSidebarItem IconOrImgUrl={Music2} title="Music" /* url="/music" */ />
                     <LargeSidebarItem
                         IconOrImgUrl={Film}
                         title="Movies & TV"
-                        url="/movies-tv"
+                    // url="/movies-tv"
                     />
-                    <LargeSidebarItem IconOrImgUrl={Radio} title="Live" url="/live" />
+                    <LargeSidebarItem IconOrImgUrl={Radio} title="Live" /* url="/live" */ />
                     <LargeSidebarItem
                         IconOrImgUrl={Gamepad2}
                         title="Gaming"
-                        url="/gaming"
+                    // url="/gaming"
                     />
-                    <LargeSidebarItem IconOrImgUrl={Newspaper} title="News" url="/news" />
+                    <LargeSidebarItem IconOrImgUrl={Newspaper} title="News" /* url="/news" */ />
                     <LargeSidebarItem
                         IconOrImgUrl={Trophy}
                         title="Sports"
-                        url="/sports"
+                    // url="/sports"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={Lightbulb}
                         title="Learning"
-                        url="/learning"
+                    // url="/learning"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={Shirt}
                         title="Fashion & Beauty"
-                        url="/fashion-beauty"
+                    // url="/fashion-beauty"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={Podcast}
                         title="Podcasts"
-                        url="/podcasts"
+                    // url="/podcasts"
                     />
                 </LargeSidebarSection>
                 <hr />
@@ -331,14 +341,14 @@ function LargeSidebarSection({ children, title, visibleItemCount = Number.POSITI
 type LargeSidebarItemProps = {
     IconOrImgUrl: ElementType | string
     title: string
-    url: string
+    url?: string
     isActive?: boolean
-    moreClassNames?: string
+    moreClassNames?: string;
 }
 function LargeSidebarItem({ isActive = false, IconOrImgUrl, title, url, moreClassNames }: LargeSidebarItemProps) {
     return (
-        <a
-            href={url}
+        <Link
+            to={url === undefined ? "/" : url}
             className={twMerge(buttonStyles({ variant: "ghost" }), `${moreClassNames} ${isActive ? "font-bold bg-primary-foreground hover:bg-primary-foreground" : ""} w-full flex items-center rounded-lg gap-4 p-3 px-5`)}
         >
             {typeof IconOrImgUrl === "string" ?
@@ -347,7 +357,7 @@ function LargeSidebarItem({ isActive = false, IconOrImgUrl, title, url, moreClas
                 <IconOrImgUrl className="w-6 h-6" />
             }
             <div className='whitespace-nowrap overflow-hidden text-ellipsis'>{title.slice(0, 13)}{title.length > 13 ? "..." : ""}</div>
-        </a>
+        </Link>
     )
 }
 

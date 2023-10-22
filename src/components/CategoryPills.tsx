@@ -9,7 +9,7 @@ import axios from 'axios'
 
 type CategoryPillsProps = {
     categoryNameSeachParams: string
-    setCategoryNameAndIdOnSearchParams: (category_name: string, category_id: string) => void
+    setCategoryNameAndIdOnSearchParams: (category_name: string, category_id: string) => void;
 }
 
 const TRANSLATE_AMOUNT = 200
