@@ -70,7 +70,7 @@ function VideoGridItems({ /* kind, */ contentDetails, /* etag, */ id, snippet, s
                     />
                 </AspectRatio>
                 <div className='absolute bottom-1 right-1 bg-background text-background-foreground text-sm px-0.5 rounded'>
-                    {parseInt(iso8601DurationToTime(contentDetails.duration)) < 60 ? `00:${iso8601DurationToTime(contentDetails.duration)}` : iso8601DurationToTime(contentDetails.duration)}
+                    {iso8601DurationToTime(contentDetails.duration).length <= 2 ? `00:${iso8601DurationToTime(contentDetails.duration)}` : iso8601DurationToTime(contentDetails.duration)}
                 </div>
 
                 {/*  <iframe

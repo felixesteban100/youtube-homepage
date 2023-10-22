@@ -15,19 +15,26 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { Separator } from '@/components/ui/separator'
+import { YouTubeVideoListResponse } from '@/utils/types'
 
 type PageHeaderProps = {
     setCurrentUserId: React.Dispatch<React.SetStateAction<string>>
+    setNextPageTokenLiked: React.Dispatch<React.SetStateAction<string>>
+    setLikedVideos: React.Dispatch<React.SetStateAction<YouTubeVideoListResponse | null>>;
+    setCurrentUserName: React.Dispatch<React.SetStateAction<string>>
 }
 
-function PageHeader({ setCurrentUserId }: PageHeaderProps) {
+function PageHeader({ setCurrentUserId, setNextPageTokenLiked, setLikedVideos, setCurrentUserName }: PageHeaderProps) {
     const [showFullWidthSearch, setShowFullWidthSearch] = useState(false)
     const { isSignedIn, isLoaded, user } = useUser();
     // const { theme } = useTheme()
 
-
+    //https://clerk.com/docs/components/unstyled/sign-out-button?utm_source=www.google.com&utm_medium=referral&utm_campaign=none
     useEffect(() => {
-        if(!!user) setCurrentUserId(user.id)
+        if (!!user) {
+            setCurrentUserId(user.id)
+            setCurrentUserName(user.username ?? user.firstName ?? user.fullName ??  "")
+        }
     }, [user])
 
     return (
@@ -120,7 +127,11 @@ function PageHeader({ setCurrentUserId }: PageHeaderProps) {
                                     />
                                     <SignOutButton
                                         signOutCallback={() => {
+                                            console.log("sign out callback works")
                                             setCurrentUserId("")
+                                            setNextPageTokenLiked("")
+                                            setLikedVideos(null)
+                                            setCurrentUserName("")
                                         }}
                                     >
                                         <div>

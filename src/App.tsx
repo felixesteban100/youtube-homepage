@@ -27,11 +27,12 @@ function App() {
   const [searchParams, setSearchParams] = useSearchParams(JSON.parse(localStorage.getItem("YOUTUBE_SEARCHPARAMS") ?? JSON.stringify(DEFAULT_SEARCHPARAMS)))
   const { category_name, category_id } = getSearchParamsFormatted(searchParams)
 
-  const [nextPageToken, setNextPageToken] = useLocalStorage("YOUTUBE_NEXTPAGETOKEN", "")
-  const [nextPageTokenLiked, setNextPageTokenLiked] = useLocalStorage("YOUTUBE_NEXTPAGETOKENLIKEDVIDEOS", "")
-  const [likedVideos, setLikedVideos] = useLocalStorage<VideoItem[]>("YOUTUBE_LIKEDVIDEOS", [])
-  
+  const [nextPageToken, setNextPageToken] = useLocalStorage<string>("YOUTUBE_NEXTPAGETOKEN", "")
+  const [nextPageTokenLiked, setNextPageTokenLiked] = useLocalStorage<string>("YOUTUBE_NEXTPAGETOKENLIKEDVIDEOS", "")
+  const [likedVideos, setLikedVideos] = useLocalStorage<YouTubeVideoListResponse | null>("YOUTUBE_LIKEDVIDEOS", null)
+
   const [currentUserId, setCurrentUserId] = useLocalStorage<string>("YOUTUBE_USERID", "")
+  const [currentUserName, setCurrentUserName] = useLocalStorage<string>("YOUTUBE_USERNAME", "")
   const [shuffledVideos, setShuffledVideos] = useState<VideoItem[]>([])
 
   const { isLoading: isLoadingVideos, isError: isErrorVideos, data: allVideos, refetch: refetchAllVideos, isFetching: isFetchingVideos } = useQuery<YouTubeVideoListResponse>({
@@ -71,12 +72,13 @@ function App() {
     },
   })
 
-  const { isLoading: isLoadingLikedVideos, isError: isErrorLikedVideos,/*  data: allLikedVideos, */ refetch: refetchLikedVideos/* , isFetching: isFetchingLikedVideos */ } = useQuery<YouTubeVideoListResponse>({
+  const { isLoading: isLoadingLikedVideos, isError: isErrorLikedVideos, /* data: allLikedVideos, */ refetch: refetchLikedVideos/* , isFetching: isFetchingLikedVideos */ } = useQuery<YouTubeVideoListResponse>({
     ...REACT_QUERY_DEFAULT_PROPERTIES,
-    enabled: currentUserId !== "",
+    enabled: currentUserId !== "" && ((likedVideos !== null && likedVideos?.items.length < likedVideos?.pageInfo.totalResults) || likedVideos === null),
     queryKey: ["YouTubeApiLikedVideos"],
     queryFn: async () => {
       if (!apiKey) throw "Missing Publishable Key";
+
 
       const configVideos = {
         method: 'get',
@@ -103,25 +105,19 @@ function App() {
       return responseLikedVideos
     },
     onSettled: (data) => {
-      if (data && data.nextPageToken) setNextPageTokenLiked(data.nextPageToken)
-      if (data && !data.nextPageToken) setNextPageTokenLiked("")
       if (data) {
-        setShuffledVideos(data.items.sort(() => 0.5 - Math.random()))
+        if (data.nextPageToken) setNextPageTokenLiked(data.nextPageToken)
+        if (!data.nextPageToken) setNextPageTokenLiked("")
+
         setLikedVideos(prev => {
-          return [...prev, ...data.items]
+          return prev !== null ? {
+            ...data,
+            items: [...prev.items, ...data.items]
+          } : data
         })
       }
     },
   })
-
-  // useEffect(() => {
-  //   if(pathname !== "/liked"){
-  //     refetchAllVideos()
-  //   }else if(typeof userId === "string" && pathname === "/liked"){
-  //     refetchAllVideos()
-  //   }
-  //   setNextPageToken("")
-  // }, [pathname])
 
   useEffect(() => localStorage.setItem("YOUTUBE_SEARCHPARAMS", JSON.stringify(getSearchParamsFormatted(searchParams))), [searchParams]);
 
@@ -143,14 +139,21 @@ function App() {
     refetchAllVideos()
   }
 
+
+
   return (
     <SidebarProvider>
       <div className="max-h-screen flex flex-col">
-        <PageHeader 
+        <PageHeader
           setCurrentUserId={setCurrentUserId}
+          setNextPageTokenLiked={setNextPageTokenLiked}
+          setLikedVideos={setLikedVideos}
+          setCurrentUserName={setCurrentUserName}
         />
         <div className="grid grid-cols-[auto,1fr] flex-grow-1 overflow-auto">
-          <SideBar />
+          <SideBar
+            currentUserId={currentUserId}
+          />
           <Routes>
             <Route
               path="/"
@@ -181,52 +184,92 @@ function App() {
                 </div>
               }
             />
-            <Route
-              path="/liked"
-              element={
-                <div className='overflow-x-hidden pl-8 pb-4 flex'>
-                  {
-                    allVideos !== undefined && likedVideos.length > 0 && isErrorVideos === false ?
-                      <div className='mt-5 rounded-xl flex-col sticky top-0 overflow-hidden hidden xl:flex justify-start pt-5 gap-10 items-center'>
-                        <img className='blur-3xl h-[70vh] w-[20vw]' src={likedVideos[0].snippet.thumbnails.high.url} alt="" />
-                        <div className='absolute w-[90%] flex flex-col gap-2'>
-                          <img className='mx-auto left-[25%] rounded-xl' src={likedVideos[0].snippet.thumbnails.high.url} alt="" />
-                          <p className='text-3xl font-bold'>Liked Videos</p>
-                          {/* <p className='font-bold'>{user?.fullName}</p> */}
-                          <div className='flex gap-2'>
-                            <p className='text-sm'>{likedVideos.length + 1} Videos</p>
-                            <p className='text-sm'>Last Sign in - {new Date().toDateString()}</p>
-                          </div>
-                          <div className='flex flex-row gap-5 my-5 w-full'>
-                            <Button className='rounded-l-full rounded-r-full w-full flex gap-1'><Play />Play ALL</Button>
-                            <Button onClick={nextPageToken !== "" ? () => refetchLikedVideos() : () => { }} className='rounded-l-full rounded-r-full w-full bg-secondary/50 flex gap-1' variant={nextPageToken !== "" ? 'secondary' : "destructive"}><Shuffle />Shuffle</Button>
+            {
+              currentUserId !== "" &&
+              <Route
+                path="/liked"
+                element={
+                  <div className='overflow-x-visible lg:overflow-x-hidden pl-8 pb-4 flex flex-col lg:flex-row'>
+                    {
+                      allVideos !== undefined && likedVideos !== null && isErrorVideos === false ?
+                        <div className='w-[25rem] flex-shrink-0 mt-5 rounded-xl flex-col sticky top-0 overflow-hidden hidden lg:flex justify-start pt-5 gap-10 items-center'>
+                          <img className='blur-3xl h-[70vh] w-[20vw] object-cover aspect-video' src={likedVideos.items[0].snippet.thumbnails.high.url} alt="" />
+                          <div className='absolute w-[90%] flex flex-col gap-2'>
+                            <img className='aspect-video object-cover mx-auto left-[25%] rounded-xl' src={likedVideos.items[0].snippet.thumbnails.high.url} alt="playlist_thumbnail" />
+                            <p className='text-3xl font-bold'>Liked Videos</p>
+                            <p className='font-bold mt-2'>{currentUserName}</p>
+                            <div className='flex gap-2'>
+                              <p className='text-sm'>{likedVideos.items.length + 1} Videos</p>
+                              <p className='text-sm'>Last Sign in - {new Date().toDateString()}</p>
+                            </div>
+                            <div className='flex flex-row gap-5 my-5 w-full'>
+                              <Button className='rounded-l-full rounded-r-full w-full flex gap-1'><Play />Play ALL</Button>
+                              {/* <Button onClick={(likedVideos === null || (likedVideos !== null && likedVideos?.items.length < likedVideos?.pageInfo.totalResults)) && nextPageTokenLiked !== "" ? () => refetchLikedVideos() : () => { }} className='rounded-l-full rounded-r-full w-full bg-secondary/50 flex gap-1' variant={nextPageToken !== "" ? 'secondary' : "destructive"}><Shuffle />Shuffle</Button> */}
+                              {
+                                ((likedVideos !== null && likedVideos?.items.length < likedVideos?.pageInfo.totalResults) || likedVideos === null) && nextPageTokenLiked !== "" ?
+                                  <Button onClick={() => refetchLikedVideos()} className='rounded-l-full rounded-r-full w-full bg-secondary/50 flex gap-1' variant={/* nextPageToken !== "" ?  */'secondary'/*  : "destructive" */}><Shuffle />{/* Shuffle */}Load More</Button>
+                                  :
+                                  null
+                              }
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      :
-                      null
-                  }
-
-                  {
-                    isLoadingLikedVideos && likedVideos.length === 0 /* || isFetchingVideos */ ?
-                      // <p>Loading...</p>
-                      null
-                      : isErrorLikedVideos && likedVideos.length === 0 /* || allVideos === undefined */ ?
-                        <p className='text-xl text-center'>Something went wrong fetching liked videos 😥</p>
                         :
-                        <div className='flex-grow overflow-y-auto grid gap-4 grid-cols-1 xl:w-[60vw] bg-background/100'>
-                          <div className="block sticky top-0 bg-background z-10 pl-5 pt-5 pb-4">
-                            <LikedVideosCategoryPills />
-                          </div>
-                          {likedVideos.map((video, index) => {
-                            return <LikedVideoGridItems key={video.id} {...video} index={index} />
-                          })}
-                        </div>
-                  }
+                        null
+                    }
 
-                </div>
-              }
-            />
+                    {
+                      allVideos !== undefined && likedVideos !== null && isErrorVideos === false ?
+                        <div className='h-[40vh] md:h-[25vh] flex lg:hidden justify-around pt-5 gap-10 items-center relative'>
+                          <img className='blur-3xl aspect-video ml-[10%] w-[100vw] h-[20vh] md:h-[15vh] object-cover' src={likedVideos.items[0].snippet.thumbnails.high.url} alt="" />
+                          <div className='absolute w-[100%] flex flex-col md:flex-row justify-start items-center gap-5'>
+                            <img className='aspect-video h-[12rem] object-cover rounded-xl' src={likedVideos.items[0].snippet.thumbnails.high.url} alt="playlist_thumbnail" />
+                            <div className='flex flex-col'>
+                              <p className='text-3xl font-bold'>Liked Videos</p>
+                              <p className='font-bold mt-2'>{currentUserName}</p>
+                              <div className='flex flex-row gap-2'>
+                                <p className='text-sm'>{likedVideos.items.length + 1} Videos</p>
+                                <p className='text-sm'>Last Sign in - {new Date().toDateString()}</p>
+                              </div>
+                              <div className='flex flex-row gap-5 my-5 w-full'>
+                                <Button className='rounded-l-full rounded-r-full w-full flex gap-1'><Play />Play ALL</Button>
+                                {
+                                  ((likedVideos !== null && likedVideos?.items.length < likedVideos?.pageInfo.totalResults) || likedVideos === null) && nextPageTokenLiked !== "" ?
+                                    <Button onClick={() => refetchLikedVideos()} className='rounded-l-full rounded-r-full w-full bg-secondary/50 flex gap-1' variant={/* nextPageToken !== "" ?  */'secondary'/*  : "destructive" */}><Shuffle />{/* Shuffle */}Load More</Button>
+                                    :
+                                    null
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        :
+                        null
+                    }
+
+                    {
+                      isLoadingLikedVideos && likedVideos === null ?
+                        null
+                        : isErrorLikedVideos ?
+                          <p className='text-xl text-center'>Something went wrong fetching liked videos 😥</p>
+                          :
+                          likedVideos === null ?
+                            <p>No liked videos</p>
+                            :
+                            <div className='flex-grow overflow-y-auto grid gap-4 grid-cols-1 xl:w-[60vw] bg-background/100'>
+                              <div className="block sticky top-0 bg-background z-10 pl-5 pt-5 pb-4">
+                                <LikedVideosCategoryPills />
+                              </div>
+                              {likedVideos.items.map((video, index) => {
+                                return <LikedVideoGridItems key={video.id} {...video} index={index} />
+                              })}
+                            </div>
+                    }
+
+                  </div>
+                }
+              />
+            }
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
@@ -238,3 +281,49 @@ function App() {
 export default App
 
 
+
+
+/* <div className='overflow-x-hidden pl-8 pb-4 flex'>
+                    {
+                      allVideos !== undefined && likedVideos !== null && isErrorVideos === false ?
+                        <div className='w-[25rem] flex-shrink-0 mt-5 rounded-xl flex-col sticky top-0 overflow-hidden hidden xl:flex justify-start pt-5 gap-10 items-center'>
+                          <img className='blur-3xl h-[70vh] w-[20vw] object-cover' src={likedVideos.items[0].snippet.thumbnails.high.url} alt="" />
+                          <div className='absolute w-[90%] flex flex-col gap-2'>
+                            <AspectRatio ratio={12 / 9}>
+                              <img className='mx-auto left-[25%] rounded-xl' src={likedVideos.items[0].snippet.thumbnails.high.url} alt="playlist_thumbnail" />
+                            </AspectRatio>
+                            <p className='text-3xl font-bold'>Liked Videos</p>
+                            <div className='flex gap-2'>
+                              <p className='text-sm'>{likedVideos.items.length + 1} Videos</p>
+                              <p className='text-sm'>Last Sign in - {new Date().toDateString()}</p>
+                            </div>
+                            <div className='flex flex-row gap-5 my-5 w-full'>
+                              <Button className='rounded-l-full rounded-r-full w-full flex gap-1'><Play />Play ALL</Button>
+                              <Button onClick={(likedVideos === null || (likedVideos !== null && likedVideos?.items.length < likedVideos?.pageInfo.totalResults)) && nextPageTokenLiked !== "" ? () => refetchLikedVideos() : () => { }} className='rounded-l-full rounded-r-full w-full bg-secondary/50 flex gap-1' variant={nextPageToken !== "" ? 'secondary' : "destructive"}><Shuffle />Shuffle</Button>
+                            </div>
+                          </div>
+                        </div>
+                        :
+                        null
+                    }
+
+                    {
+                      isLoadingLikedVideos && likedVideos === null ?
+                        null
+                        : isErrorLikedVideos   ?
+                          <p className='text-xl text-center'>Something went wrong fetching liked videos 😥</p>
+                          :
+                          likedVideos === null ?
+                            <p>No liked videos</p>
+                            :
+                            <div className='flex-grow overflow-y-auto grid gap-4 grid-cols-1 xl:w-[60vw] bg-background/100'>
+                              <div className="block sticky top-0 bg-background z-10 pl-5 pt-5 pb-4">
+                                <LikedVideosCategoryPills />
+                              </div>
+                              {likedVideos.items.map((video, index) => {
+                                return <LikedVideoGridItems key={video.id} {...video} index={index} />
+                              })}
+                            </div>
+                    }
+
+                  </div> */

@@ -16,12 +16,14 @@ import { queryClient } from "@/main"
 import { useLocation, Link } from "react-router-dom"
 import useLocalStorage from "@/hooks/useLocalStorage"
 
-type SideBarProps = {}
+type SideBarProps = {
+    currentUserId: string
+}
 
 // apply this to the youtube api
 // https://www.youtube.com/watch?v=IAZLgLyFDJg&ab_channel=Joshtriedcoding
 
-function SideBar({ }: SideBarProps) {
+function SideBar({ currentUserId }: SideBarProps) {
     const { pathname } = useLocation()
 
     const { isLargeOpen, isSmallOpen, close } = useSidebarContext()
@@ -32,7 +34,7 @@ function SideBar({ }: SideBarProps) {
 
     const { isLoading: isLoadingSubscriptions, isError: isErrorSubscriptions/* , data: allSubscriptions */ } = useQuery<YouTubeSubscriptionResponse>({
         ...REACT_QUERY_DEFAULT_PROPERTIES,
-        enabled: (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
+        enabled: currentSubscriptions === null && (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
         queryKey: ["YouTubeApiSubscription"],
         queryFn: async () => {
             if (!apiKey) {
@@ -63,7 +65,7 @@ function SideBar({ }: SideBarProps) {
 
     const { isLoading: isLoadingPlaylists, isError: isErrorPlaylists/* , data: allPlaylists */ } = useQuery<YouTubePlaylistListResponse>({
         ...REACT_QUERY_DEFAULT_PROPERTIES,
-        enabled: (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
+        enabled: currentPlaylists === null && (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
         queryKey: ["YouTubeApiPlaylists"],
         queryFn: async () => {
             if (!apiKey) {
@@ -86,10 +88,17 @@ function SideBar({ }: SideBarProps) {
         }
     })
 
+    useEffect(() => {
+        if (currentUserId === "") {
+            setCurrentUserSubscriptions(null)
+            setCurrentUserPlaylists(null)
+        }
+    }, [currentUserId])
+
     return (
         <>
             <aside
-                className={`sticky top-0 overflow-y-auto scrollbar-hidden pb-4 flex flex-col ml-1 ${isLargeOpen ? "hidden" : "hidden lg:flex"}`}
+                className={`sticky top-0 overflow-y-auto scrollbar-hidden pb-4 flex flex-col ml-1 ${isLargeOpen ? "hidden" : "hidden md:flex"}`}
             >
                 <SmallSidebarItem IconOrImgUrl={Home} title="Home" url="/home" />
                 <SmallSidebarItem IconOrImgUrl={Repeat} title="Shorts" url="/shorts" />
@@ -105,7 +114,7 @@ function SideBar({ }: SideBarProps) {
             )}
             <aside
                 id="largeSideBar"
-                className={`w-56 bg-background z-[999] lg:sticky absolute top-0 overflow-y-auto scrollbar-hidden pb-4 flex-col gap-2 px-2 ${isLargeOpen ? "lg:flex animate-slideIn-left" : "lg:hidden"} ${isSmallOpen ? "flex z-[999] bg-background max-h-screen animate-slideIn-left" : "animate-slideOut-right lg:animate-none transition-none"}`}
+                className={`w-56 bg-background z-[999] xl:sticky absolute top-0 overflow-y-auto scrollbar-hidden pb-4 flex-col gap-2 px-2 ${isLargeOpen ? "xl:flex animate-slideIn-left" : "xl:hidden"} ${isSmallOpen ? "flex z-[999] bg-background max-h-screen animate-slideIn-left" : "animate-slideOut-right xl:animate-none transition-none"}`}
             >
                 <div className="lg:hidden pt-2 pb-4 px-2 sticky top-0 bg-background">
                     <PageHeaderFirstSection
@@ -122,12 +131,10 @@ function SideBar({ }: SideBarProps) {
                     <LargeSidebarItem
                         IconOrImgUrl={BookMarked}
                         title="Library"
-                    // url="/library"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={History}
                         title="History"
-                    // url="/history"
                     />
                     {
                         (isSignedIn !== undefined && isSignedIn !== false) ?
@@ -155,32 +162,34 @@ function SideBar({ }: SideBarProps) {
                                         key={playlist.id}
                                         IconOrImgUrl={ListVideo}
                                         title={playlist.name}
-                                        // url={`/`}
                                         moreClassNames={isLoadingPlaylists ? "animate-pulse" : ""}
                                     />
                                 ))
                                 :
-                                (isErrorPlaylists || currentPlaylists === null) ?
+                                isErrorPlaylists ?
                                     <div className="flex flex-col justify-center items-start gap-5 p-5 ">
                                         <p>An error happend looking for playlists.</p>
                                     </div>
                                     :
-                                    <>
-                                        <LargeSidebarItem
-                                            IconOrImgUrl={ThumbsUp}
-                                            title="Liked videos"
-                                            isActive={pathname === "/liked"}
-                                            url="/liked"
-                                        />
-                                        {currentPlaylists.items.map(playlist => (
+                                    currentPlaylists === null ?
+                                        null
+                                        :
+                                        <>
                                             <LargeSidebarItem
-                                                key={playlist.id}
-                                                IconOrImgUrl={ListVideo}
-                                                title={playlist.snippet.title}
-                                                url={`https://www.youtube.com/playlist?list=${playlist.id}`}
+                                                IconOrImgUrl={ThumbsUp}
+                                                title="Liked videos"
+                                                isActive={pathname === "/liked"}
+                                                url="/liked"
                                             />
-                                        ))}
-                                    </>
+                                            {currentPlaylists.items.map(playlist => (
+                                                <LargeSidebarItem
+                                                    key={playlist.id}
+                                                    IconOrImgUrl={ListVideo}
+                                                    title={playlist.snippet.title}
+                                                    url={`https://www.youtube.com/playlist?list=${playlist.id}`}
+                                                />
+                                            ))}
+                                        </>
                     }
                 </LargeSidebarSection>
                 {
@@ -196,31 +205,34 @@ function SideBar({ }: SideBarProps) {
                                                     key={subscription.id}
                                                     IconOrImgUrl={subscription.imgUrl}
                                                     title={subscription.channelName}
-                                                    // url={`/@${subscription.id}`}
                                                     moreClassNames={isLoadingSubscriptions ? "animate-pulse" : ""}
                                                 />
                                             )
                                         })
                                         :
-                                        currentSubscriptions === null || isErrorSubscriptions ?
+                                        isErrorSubscriptions ?
                                             <div className="flex flex-col justify-center items-start gap-5 p-5 ">
                                                 <p>An error happend looking for playlists.</p>
                                             </div>
                                             :
-                                            currentSubscriptions.items.map((subscription) => {
-                                                return (
-                                                    <LargeSidebarItem
-                                                        key={subscription.id}
-                                                        IconOrImgUrl={subscription.snippet.thumbnails.high.url}
-                                                        title={subscription.snippet.title}
-                                                        url={`https://www.youtube.com/${subscription.channelInfo.items[0].snippet.customUrl}`}
-                                                    />
-                                                )
-                                            })
+                                            currentSubscriptions === null ?
+                                                null
+                                                :
+                                                currentSubscriptions.items.map((subscription) => {
+                                                    return (
+                                                        <LargeSidebarItem
+                                                            key={subscription.id}
+                                                            IconOrImgUrl={subscription.snippet.thumbnails.high.url}
+                                                            title={subscription.snippet.title}
+                                                            url={`https://www.youtube.com/${subscription.channelInfo.items[0].snippet.customUrl}`}
+                                                        />
+                                                    )
+                                                })
                                 }
                             </LargeSidebarSection>
                         </>
                         :
+                        (isSignedIn === undefined && isSignedIn === false && isLoaded === true) ?
                         <>
                             <hr />
                             <div className="flex flex-col justify-center items-start gap-5 p-5 ">
@@ -233,51 +245,45 @@ function SideBar({ }: SideBarProps) {
                                 </SignInButton>
                             </div>
                         </>
+                        :
+                        null
                 }
                 <hr />
                 <LargeSidebarSection title="Explore">
                     <LargeSidebarItem
                         IconOrImgUrl={Flame}
                         title="Trending"
-                    // url="/trending"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={ShoppingBag}
                         title="Shopping"
-                    // url="/shopping"
                     />
-                    <LargeSidebarItem IconOrImgUrl={Music2} title="Music" /* url="/music" */ />
+                    <LargeSidebarItem IconOrImgUrl={Music2} title="Music" />
                     <LargeSidebarItem
                         IconOrImgUrl={Film}
                         title="Movies & TV"
-                    // url="/movies-tv"
                     />
-                    <LargeSidebarItem IconOrImgUrl={Radio} title="Live" /* url="/live" */ />
+                    <LargeSidebarItem IconOrImgUrl={Radio} title="Live" />
                     <LargeSidebarItem
                         IconOrImgUrl={Gamepad2}
                         title="Gaming"
-                    // url="/gaming"
                     />
-                    <LargeSidebarItem IconOrImgUrl={Newspaper} title="News" /* url="/news" */ />
+                    <LargeSidebarItem IconOrImgUrl={Newspaper} title="News" />
                     <LargeSidebarItem
                         IconOrImgUrl={Trophy}
                         title="Sports"
-                    // url="/sports"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={Lightbulb}
                         title="Learning"
-                    // url="/learning"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={Shirt}
                         title="Fashion & Beauty"
-                    // url="/fashion-beauty"
                     />
                     <LargeSidebarItem
                         IconOrImgUrl={Podcast}
                         title="Podcasts"
-                    // url="/podcasts"
                     />
                 </LargeSidebarSection>
                 <hr />
