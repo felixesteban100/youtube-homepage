@@ -82,6 +82,7 @@ function SideBar({ currentUserId }: SideBarProps) {
     useEffect(() => {
         if (isLoadingPlaylists || isLoadingSubscriptions) {
             setTimeout(() => {
+                console.info("the api call was cancel because it took a bunch of time to fetch the data 😅")
                 queryClient.cancelQueries(["YouTubeApiSubscription"])
                 queryClient.cancelQueries(["YouTubeApiPlaylists"])
             }, 15000)
@@ -156,7 +157,7 @@ function SideBar({ currentUserId }: SideBarProps) {
                         (isSignedIn === undefined || isSignedIn === false) ?
                             null
                             :
-                            isLoadingPlaylists && currentPlaylists === undefined ?
+                            isLoadingPlaylists /* && currentPlaylists === undefined */ ?
                                 playlists.map(playlist => (
                                     <LargeSidebarItem
                                         key={playlist.id}
@@ -172,7 +173,7 @@ function SideBar({ currentUserId }: SideBarProps) {
                                     </div>
                                     :
                                     currentPlaylists === null ?
-                                        null
+                                        <p>No Playlists founded</p>
                                         :
                                         <>
                                             <LargeSidebarItem
@@ -198,7 +199,7 @@ function SideBar({ currentUserId }: SideBarProps) {
                             <hr />
                             <LargeSidebarSection title="Subscriptions" visibleItemCount={5}>
                                 {
-                                    isLoadingSubscriptions && currentSubscriptions === undefined ?
+                                    isLoadingSubscriptions /* && currentSubscriptions === undefined */ ?
                                         subscriptions.map((subscription) => {
                                             return (
                                                 <LargeSidebarItem
@@ -216,7 +217,7 @@ function SideBar({ currentUserId }: SideBarProps) {
                                             </div>
                                             :
                                             currentSubscriptions === null ?
-                                                null
+                                                <p>No subscriptions founded</p>
                                                 :
                                                 currentSubscriptions.items.map((subscription) => {
                                                     return (
@@ -233,20 +234,20 @@ function SideBar({ currentUserId }: SideBarProps) {
                         </>
                         :
                         (isSignedIn === undefined && isSignedIn === false && isLoaded === true) ?
-                        <>
-                            <hr />
-                            <div className="flex flex-col justify-center items-start gap-5 p-5 ">
-                                <p>Sign in to like videos, comment, and subscribe.</p>
-                                <SignInButton>
-                                    <Button className='flex justify-center items-center gap-2 border-muted-foreground border rounded-full p-2' variant={"ghost"}>
-                                        <User />
-                                        Sign In
-                                    </Button>
-                                </SignInButton>
-                            </div>
-                        </>
-                        :
-                        null
+                            <>
+                                <hr />
+                                <div className="flex flex-col justify-center items-start gap-5 p-5 ">
+                                    <p>Sign in to like videos, comment, and subscribe.</p>
+                                    <SignInButton>
+                                        <Button className='flex justify-center items-center gap-2 border-muted-foreground border rounded-full p-2' variant={"ghost"}>
+                                            <User />
+                                            Sign In
+                                        </Button>
+                                    </SignInButton>
+                                </div>
+                            </>
+                            :
+                            null
                 }
                 <hr />
                 <LargeSidebarSection title="Explore">
