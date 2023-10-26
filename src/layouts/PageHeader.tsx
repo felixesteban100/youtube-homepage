@@ -1,13 +1,12 @@
 import { Menu, User, Mic, Search, ArrowLeft, Upload, Bell, PlayIcon, LogOut, Settings, DollarSign, User2Icon, MoonIcon, Languages, LocateIcon } from 'lucide-react'
 import logo from '../assets/logo.png'
 import Button from '../components/Button'
-import { useState, useEffect, ElementType } from 'react'
+import { useState, ElementType } from 'react'
 import { useSidebarContext } from '../contexts/SidebarContext'
 import { ModeToggle } from '@/components/mode-toogle'
 import { useTheme } from "@/components/theme-provider"
-import { SignInButton, SignOutButton/* , UserButton */ } from "@clerk/clerk-react";
+import { SignInButton, SignOutButton } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
-// import { dark } from '@clerk/themes';
 
 import {
     Popover,
@@ -15,27 +14,24 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { Separator } from '@/components/ui/separator'
-import { YouTubeVideoListResponse } from '@/utils/types'
+import { useCurrentUser } from '@/state/currentUser'
+import useQuerySubscriptions from '@/api/useQuerySubscriptions'
+import useQueryPlaylists from '@/api/useQueryPlaylists'
+import useQueryLikedVideos from '@/api/useQueryLikedVideos'
 
-type PageHeaderProps = {
-    setCurrentUserId: React.Dispatch<React.SetStateAction<string>>
-    setNextPageTokenLiked: React.Dispatch<React.SetStateAction<string>>
-    setLikedVideos: React.Dispatch<React.SetStateAction<YouTubeVideoListResponse | null>>;
-    setCurrentUserName: React.Dispatch<React.SetStateAction<string>>
-}
+type PageHeaderProps = {}
 
-function PageHeader({ setCurrentUserId, setNextPageTokenLiked, setLikedVideos, setCurrentUserName }: PageHeaderProps) {
+function PageHeader({ }: PageHeaderProps) {
     const [showFullWidthSearch, setShowFullWidthSearch] = useState(false)
     const { isSignedIn, isLoaded, user } = useUser();
-    // const { theme } = useTheme()
+    const { clearUser } = useCurrentUser()
+    const { setCurrentUserPlaylists } = useQueryPlaylists()
+    const { setCurrentUserSubscriptions } = useQuerySubscriptions()
+    const { setNextPageTokenLiked, setLikedVideos} = useQueryLikedVideos()
 
     //https://clerk.com/docs/components/unstyled/sign-out-button?utm_source=www.google.com&utm_medium=referral&utm_campaign=none
-    useEffect(() => {
-        if (!!user) {
-            setCurrentUserId(user.id)
-            setCurrentUserName(user.username ?? user.firstName ?? user.fullName ??  "")
-        }
-    }, [user])
+    //put this in a login callback in a clerk component 
+    
 
     return (
         <div className="flex gap-10 lg:gap-20 justify-between pt-2 mb-6 mx-4">
@@ -127,11 +123,12 @@ function PageHeader({ setCurrentUserId, setNextPageTokenLiked, setLikedVideos, s
                                     />
                                     <SignOutButton
                                         signOutCallback={() => {
-                                            console.log("sign out callback works")
-                                            setCurrentUserId("")
-                                            setNextPageTokenLiked("")
+                                            console.info("sign out callback works")
+                                            clearUser()
+                                            setCurrentUserPlaylists(null)
+                                            setCurrentUserSubscriptions(null)
                                             setLikedVideos(null)
-                                            setCurrentUserName("")
+                                            setNextPageTokenLiked("")
                                         }}
                                     >
                                         <div>
@@ -238,25 +235,3 @@ export function LargeSidebarItem({ IconOrImgUrl, title, moreClassNames }: LargeS
 
 
 export default PageHeader
-
-
-/* <Button size={'icon'}>
-                            <UserButton
-                                userProfileProps={{
-                                    additionalOAuthScopes: {
-                                        google: [
-                                            'https://www.googleapis.com/auth/youtube.readonly',
-                                            'https://www.googleapis.com/auth/youtube',
-                                            'openid',
-                                            'https://www.googleapis.com/auth/userinfo.email',
-                                            'https://www.googleapis.com/auth/userinfo.profile',
-                                            'https://www.googleapis.com/auth/youtube.download'
-                                        ]
-                                    }
-                                }}
-                                appearance={{
-                                    baseTheme: (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches) || theme === "dark" ? dark : undefined
-                                }}
-                                afterSignOutUrl='/'
-                            />
-                        </Button> */

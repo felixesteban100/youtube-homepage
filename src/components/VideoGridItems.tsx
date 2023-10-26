@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+// import { useState, useRef, useEffect } from 'react'
 // import { formatDuration } from '../utils/formatDuration';
 import { formatTimeAgo } from '../utils/formatTimeAgo';
 import { VideoItem } from '@/utils/types';
@@ -27,9 +27,9 @@ const VIEW_FORMATTER = Intl.NumberFormat(undefined, {
 })
 
 function VideoGridItems({ /* kind, */ contentDetails, /* etag, */ id, snippet, statistics, channelInfo/* , player */ }: VideoGridItemsProps) {
-    const [isVideoPlaying, setIsVideoPlaying] = useState(false)
-    // const videoRef = useRef<HTMLVideoElement>(null)
-    const videoRef = useRef<HTMLIFrameElement>(null)
+    // const [isVideoPlaying, setIsVideoPlaying] = useState(false)
+    // // const videoRef = useRef<HTMLVideoElement>(null)
+    // const videoRef = useRef<HTMLIFrameElement>(null)
 
     // const regex = /"(?:https?:)?\/\/www\.youtube\.com\/embed\/([^"]+)"/;
     // const match = player.embedHtml.match(regex);
@@ -38,21 +38,21 @@ function VideoGridItems({ /* kind, */ contentDetails, /* etag, */ id, snippet, s
 
     // console.log(channelInfo.items[0].snippet.thumbnails)
 
-    useEffect(() => {
-        if (videoRef.current == null) return
-        if (isVideoPlaying /* && !videoRef.current?.paused */) {
-            // videoRef.current.currentTime = 0
-            // videoRef.current.play()
-            // videoRef.current.
-        } else {
-            // videoRef.current.pause()
-        }
-    }, [isVideoPlaying])
+    // you know the react hook(() => {
+    //     if (videoRef.current == null) return
+    //     if (isVideoPlaying /* && !videoRef.current?.paused */) {
+    //         // videoRef.current.currentTime = 0
+    //         // videoRef.current.play()
+    //         // videoRef.current.
+    //     } else {
+    //         // videoRef.current.pause()
+    //     }
+    // }, [isVideoPlaying])
 
     return (
         <div className='flex flex-col gap-2'
-            onMouseEnter={() => setIsVideoPlaying(true)}
-            onMouseLeave={() => setIsVideoPlaying(false)}
+            // onMouseEnter={() => setIsVideoPlaying(true)}
+            // onMouseLeave={() => setIsVideoPlaying(false)}
         >
             <a
                 href={`https://www.youtube.com/watch?v=${id}`}

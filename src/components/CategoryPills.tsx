@@ -6,21 +6,22 @@ import { YouTubeVideoCategoryListResponse } from '@/utils/types'
 import { useQuery } from 'react-query'
 import { API_URL_CATEGORIES, CATEGORIES_THAT_RETURN_ERROR, REACT_QUERY_DEFAULT_PROPERTIES, apiKey } from '../data/constants'
 import axios from 'axios'
+import { useSearchParamsForTheApp } from '@/hooks/useSearchParamsForTheApp'
+import useQueryVideos from '@/api/useQueryVideos'
 
-type CategoryPillsProps = {
-    categoryNameSeachParams: string
-    setCategoryNameAndIdOnSearchParams: (category_name: string, category_id: string) => void;
-}
+type CategoryPillsProps = {}
 
 const TRANSLATE_AMOUNT = 200
 
-function CategoryPills({ categoryNameSeachParams, setCategoryNameAndIdOnSearchParams }: CategoryPillsProps) {
-    
+function CategoryPills({ }: CategoryPillsProps) {
     const [isLeftVisible, setIsLeftVisible] = useState(false)
     const [isRightVisible, setIsRightVisible] = useState(false)
     const [translate, setTranslate] = useState(0)
     const containerRef = useRef<HTMLDivElement>(null)
 
+    const { refetchAllVideos } = useQueryVideos()
+
+    const { searchParams, setSearchParams } = useSearchParamsForTheApp()
 
     const { isLoading: isLoadingCategories, isError: isErrorCategories, data: allCategories } = useQuery<YouTubeVideoCategoryListResponse>({
         ...REACT_QUERY_DEFAULT_PROPERTIES,
@@ -57,6 +58,17 @@ function CategoryPills({ categoryNameSeachParams, setCategoryNameAndIdOnSearchPa
         }
     }, [categories, translate])
 
+    function setCategoryNameAndIdOnSearchParams(category_name: string, category_id: string) {
+        setSearchParams((prev) => {
+            prev.set("category_name", category_name)
+            prev.set("category_id", category_id)
+            return prev
+        })
+        setTimeout(() => {
+            refetchAllVideos()
+        }, 300)
+    }
+
     return (
         <div ref={containerRef} className="overflow-x-hidden relative">
             <div
@@ -83,7 +95,7 @@ function CategoryPills({ categoryNameSeachParams, setCategoryNameAndIdOnSearchPa
                                     onClick={() => {
                                         setCategoryNameAndIdOnSearchParams(categoryAll.snippet.title, categoryAll.id)
                                     }}
-                                    variant={"All" === categoryNameSeachParams ? "dark" : null}
+                                    variant={"All" === searchParams.category_name ? "dark" : null}
                                     className="py-1 px-3 rounded-lg whitespace-nowrap"
                                 >
                                     All
@@ -97,7 +109,7 @@ function CategoryPills({ categoryNameSeachParams, setCategoryNameAndIdOnSearchPa
                                                     onClick={() => {
                                                         setCategoryNameAndIdOnSearchParams(category.snippet.title, category.id)
                                                     }}
-                                                    variant={category.snippet.title === categoryNameSeachParams ? "dark" : null}
+                                                    variant={category.snippet.title === searchParams.category_name ? "dark" : null}
                                                     className="py-1 px-3 rounded-lg whitespace-nowrap"
                                                 >
                                                     {category.snippet.title}

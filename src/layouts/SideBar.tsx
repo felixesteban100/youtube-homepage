@@ -6,95 +6,20 @@ import React, { ReactNode, useState } from 'react'
 import { playlists, subscriptions } from "../data/sidebar"
 import { useSidebarContext } from "../contexts/SidebarContext"
 import { PageHeaderFirstSection } from "./PageHeader"
-import { ChannelInfoResponse, YouTubePlaylistListResponse, YouTubeSubscription, YouTubeSubscriptionResponse } from "@/utils/types"
-import { useQuery } from 'react-query'
-import { API_URL_CHANNELS, REACT_QUERY_DEFAULT_PROPERTIES, URL_CLERK_API, apiKey, clerkSecretKey } from '../data/constants'
-import axios from 'axios'
 import { SignInButton, useAuth } from "@clerk/clerk-react";
-import { useEffect } from 'react'
-import { queryClient } from "@/main"
 import { useLocation, Link } from "react-router-dom"
-import useLocalStorage from "@/hooks/useLocalStorage"
+import useQueryPlaylists from "@/api/useQueryPlaylists"
+import useQuerySubscriptions from "@/api/useQuerySubscriptions"
 
-type SideBarProps = {
-    currentUserId: string
-}
+type SideBarProps = {}
 
-// apply this to the youtube api
-// https://www.youtube.com/watch?v=IAZLgLyFDJg&ab_channel=Joshtriedcoding
-
-function SideBar({ currentUserId }: SideBarProps) {
+function SideBar({ }: SideBarProps) {
     const { pathname } = useLocation()
-
     const { isLargeOpen, isSmallOpen, close } = useSidebarContext()
-    const { isLoaded, isSignedIn, userId } = useAuth()
+    const { isLoaded, isSignedIn } = useAuth()
 
-    const [currentSubscriptions, setCurrentUserSubscriptions] = useLocalStorage<YouTubeSubscriptionResponse | null>("YOUTUBE_SUBSCRIPTIONS", null)
-    const [currentPlaylists, setCurrentUserPlaylists] = useLocalStorage<YouTubePlaylistListResponse | null>("YOUTUBE_PLAYLISTS", null)
-
-    const { isLoading: isLoadingSubscriptions, isError: isErrorSubscriptions/* , data: allSubscriptions */ } = useQuery<YouTubeSubscriptionResponse>({
-        ...REACT_QUERY_DEFAULT_PROPERTIES,
-        enabled: currentSubscriptions === null && (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
-        queryKey: ["YouTubeApiSubscription"],
-        queryFn: async () => {
-            if (!apiKey) {
-                throw "Missing Publishable Key";
-            }
-            const responseApiBecauseClerkIsBadService = await axios.get<YouTubeSubscriptionResponse>(`${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${userId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=subscriptions`).then(async (dataSubscription) => {
-                const subscriptionsWithChannelInfoPromise: Promise<YouTubeSubscription>[] = await dataSubscription.data.items.map(async (subscription) => {
-                    const configChannel = {
-                        method: 'get',
-                        maxBodyLength: Infinity,
-                        url: `${API_URL_CHANNELS}?part=snippet%2CcontentDetails%2Cstatistics&id=${subscription.snippet.resourceId.channelId}&key=${apiKey}`,
-                    };
-                    const responseChannel = await axios.request<ChannelInfoResponse>(configChannel).then(data => data.data);
-                    return { ...subscription, channelInfo: responseChannel }
-                })
-                return {
-                    ...dataSubscription.data,
-                    items: await Promise.all(subscriptionsWithChannelInfoPromise).then((value) => value)
-                }
-            });
-
-            return responseApiBecauseClerkIsBadService
-        },
-        onSuccess: (data) => {
-            setCurrentUserSubscriptions(data)
-        }
-    })
-
-    const { isLoading: isLoadingPlaylists, isError: isErrorPlaylists/* , data: allPlaylists */ } = useQuery<YouTubePlaylistListResponse>({
-        ...REACT_QUERY_DEFAULT_PROPERTIES,
-        enabled: currentPlaylists === null && (isSignedIn !== undefined && isSignedIn === true && isLoaded === true),
-        queryKey: ["YouTubeApiPlaylists"],
-        queryFn: async () => {
-            if (!apiKey) {
-                throw "Missing Publishable Key";
-            }
-            const responseApiBecauseClerkIsBadService = await axios.get<YouTubePlaylistListResponse>(`${URL_CLERK_API}?clerkSecretKey=${clerkSecretKey}&userId=${userId}&apiYoutubeKey=${apiKey}&typeOfDATATOFETCH=playlists`);
-            return responseApiBecauseClerkIsBadService.data
-        },
-        onSuccess: (data) => {
-            setCurrentUserPlaylists(data)
-        }
-    })
-
-    useEffect(() => {
-        if (isLoadingPlaylists || isLoadingSubscriptions) {
-            setTimeout(() => {
-                console.info("the api call was cancel because it took a bunch of time to fetch the data 😅")
-                queryClient.cancelQueries(["YouTubeApiSubscription"])
-                queryClient.cancelQueries(["YouTubeApiPlaylists"])
-            }, 15000)
-        }
-    })
-
-    useEffect(() => {
-        if (currentUserId === "") {
-            setCurrentUserSubscriptions(null)
-            setCurrentUserPlaylists(null)
-        }
-    }, [currentUserId])
+    const { isLoadingPlaylists, isErrorPlaylists, currentPlaylists } = useQueryPlaylists()
+    const { isLoadingSubscriptions, isErrorSubscriptions, currentSubscriptions } = useQuerySubscriptions()
 
     return (
         <>
@@ -138,7 +63,7 @@ function SideBar({ currentUserId }: SideBarProps) {
                         title="History"
                     />
                     {
-                        (isSignedIn !== undefined && isSignedIn !== false) ?
+                        (isSignedIn !== false) ?
                             <>
                                 <LargeSidebarItem
                                     IconOrImgUrl={PlaySquare}
@@ -157,7 +82,7 @@ function SideBar({ currentUserId }: SideBarProps) {
                         (isSignedIn === undefined || isSignedIn === false) ?
                             null
                             :
-                            isLoadingPlaylists /* && currentPlaylists === undefined */ ?
+                            isLoadingPlaylists ?
                                 playlists.map(playlist => (
                                     <LargeSidebarItem
                                         key={playlist.id}
@@ -194,7 +119,7 @@ function SideBar({ currentUserId }: SideBarProps) {
                     }
                 </LargeSidebarSection>
                 {
-                    (isSignedIn !== undefined && isSignedIn === true && isLoaded === true) ?
+                    (isSignedIn === true && isLoaded === true) ?
                         <>
                             <hr />
                             <LargeSidebarSection title="Subscriptions" visibleItemCount={5}>
@@ -233,7 +158,7 @@ function SideBar({ currentUserId }: SideBarProps) {
                             </LargeSidebarSection>
                         </>
                         :
-                        (isSignedIn === undefined && isSignedIn === false && isLoaded === true) ?
+                        (isSignedIn === false && isLoaded === true) ?
                             <>
                                 <hr />
                                 <div className="flex flex-col justify-center items-start gap-5 p-5 ">

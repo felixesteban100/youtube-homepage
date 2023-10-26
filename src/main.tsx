@@ -5,7 +5,7 @@ import './index.css'
 import { ThemeProvider } from "@/components/theme-provider"
 import { QueryClientProvider, QueryClient } from 'react-query';
 import { BrowserRouter } from 'react-router-dom'
-import { ClerkProvider } from "@clerk/clerk-react";
+import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-react";
 import { dark } from '@clerk/themes'
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) throw "Missing Publishable Key";
@@ -22,9 +22,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             baseTheme: (localStorage.getItem('vite-ui-theme') === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches) || localStorage.getItem('vite-ui-theme') === "dark" ? dark : undefined
           }}
         >
+          <ClerkLoaded>
           <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
             <App />
           </ThemeProvider>
+          </ClerkLoaded>
         </ClerkProvider>
       </QueryClientProvider>
     </BrowserRouter>
