@@ -29,7 +29,7 @@ function LikeVideos({ }: LikeVideosProps) {
                             <p className='text-3xl font-bold'>Liked Videos</p>
                             <p className='font-bold mt-2'>{currentUser.name}</p>
                             <div className='flex gap-2'>
-                                <p className='text-sm'>{likedVideos.items.length} {likedVideos.pageInfo.totalResults} Videos</p>
+                                <p className='text-sm'>{likedVideos.items.length === likedVideos.pageInfo.totalResults ? likedVideos.pageInfo.totalResults : "..."} Videos</p>
                                 <p className='text-sm'>Last Sign in - {new Date().toDateString()}</p>
                             </div>
                             <div className='flex flex-row gap-5 my-5 w-full'>
@@ -52,7 +52,7 @@ function LikeVideos({ }: LikeVideosProps) {
                                 <p className='text-3xl font-bold'>Liked Videos</p>
                                 <p className='font-bold mt-2'>{currentUser.name}</p>
                                 <div className='flex flex-row gap-2'>
-                                    <p className='text-sm'>{likedVideos.items.length} {likedVideos.pageInfo.totalResults} Videos</p>
+                                    <p className='text-sm'>{likedVideos.items.length === likedVideos.pageInfo.totalResults ? likedVideos.pageInfo.totalResults : "..."} Videos</p>
                                     <p className='text-sm'>Last Sign in - {new Date().toDateString()}</p>
                                 </div>
                                 <div className='flex flex-row gap-5 my-5 w-full'>
